@@ -17,63 +17,59 @@ from django.contrib import admin
 from django.urls import include, path
 
 from django.contrib.auth.models import User
-from rest_framework import routers, serializers, viewsets
+# from rest_framework import routers, serializers, viewsets
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = User
-        fields = ["url", "username", "email", "is_staff"]
+# class UserSerializer(serializers.HyperlinkedModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ["url", "username", "email", "is_staff"]
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+# class UserViewSet(viewsets.ModelViewSet):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
 
-from backend.models import CfnResourceType, CfnResourceAttribute, CfnSpecification
+# from backend.models import CfnResourceType, CfnResourceAttribute, CfnSpecification
 
-class CfnResourceAttributeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CfnResourceAttribute
-        fields = ["attribute_type", "attribute_name"]
-class CfnResourceAttributeViewSet(viewsets.ModelViewSet):
-    queryset = CfnResourceAttribute.objects.all()
-    serializer_class = CfnResourceAttributeSerializer
-
-
-class CfnResourceTypeSerializer(serializers.ModelSerializer):
-    resource_attributes = CfnResourceAttributeSerializer(many=True, read_only=True)
-    class Meta:
-        model = CfnResourceType
-        fields = ["resource_type", "resource_attributes"]
-class CfnResourceTypeViewSet(viewsets.ModelViewSet):
-    queryset = CfnResourceType.objects.all()
-    serializer_class = CfnResourceTypeSerializer
+# class CfnResourceAttributeSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = CfnResourceAttribute
+#         fields = ["attribute_type", "attribute_name"]
+# class CfnResourceAttributeViewSet(viewsets.ModelViewSet):
+#     queryset = CfnResourceAttribute.objects.all()
+#     serializer_class = CfnResourceAttributeSerializer
 
 
-class CfnSpecificationSerializer(serializers.ModelSerializer):
-    resource_types = CfnResourceTypeSerializer(many=True, read_only=True)
-    class Meta:
-        model = CfnSpecification
-        fields = ["region_name", "resource_types"]
-class CfnSpecificationViewSet(viewsets.ModelViewSet):
-    queryset = CfnSpecification.objects.all()
-    serializer_class = CfnSpecificationSerializer
+# class CfnResourceTypeSerializer(serializers.ModelSerializer):
+#     resource_attributes = CfnResourceAttributeSerializer(many=True, read_only=True)
+#     class Meta:
+#         model = CfnResourceType
+#         fields = ["resource_type", "resource_attributes"]
+# class CfnResourceTypeViewSet(viewsets.ModelViewSet):
+#     queryset = CfnResourceType.objects.all()
+#     serializer_class = CfnResourceTypeSerializer
 
 
-router = routers.DefaultRouter()
-router.register(r"users", UserViewSet)
-router.register(r"cfn_specfications", CfnSpecificationViewSet)
-# router.register(r"cfn_resource_type", CfnResourceTypeViewSet)
-# router.register(r"cfn_attribute", CfnResourceAttributeViewSet)
+# class CfnSpecificationSerializer(serializers.ModelSerializer):
+#     resource_types = CfnResourceTypeSerializer(many=True, read_only=True)
+#     class Meta:
+#         model = CfnSpecification
+#         fields = ["region_name", "resource_types"]
+# class CfnSpecificationViewSet(viewsets.ModelViewSet):
+#     queryset = CfnSpecification.objects.all()
+#     serializer_class = CfnSpecificationSerializer
+
+
+# router = routers.DefaultRouter()
+# router.register(r"users", UserViewSet)
+# router.register(r"cfn_specfications", CfnSpecificationViewSet)
+# # router.register(r"cfn_resource_type", CfnResourceTypeViewSet)
+# # router.register(r"cfn_attribute", CfnResourceAttributeViewSet)
 
 
 
 # import backend
 urlpatterns = [
-    path("", include(router.urls)),
-    # path('admin/', admin.site.urls),
-    path('api/', include('rest_framework.urls', namespace="rest_framework")),
+    # path("", include(router.urls)),
+    path('admin/', admin.site.urls),
+    path('api/', include('backend.urls')),
 ]
-
-from backend import utils
-
-utils.import_specs()

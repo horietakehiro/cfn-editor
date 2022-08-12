@@ -2,3 +2,6 @@
 db.sqlite3
 .ipynb_checkpoints
 *.ipynb
+uploads
+.vscode
+__pycache__
