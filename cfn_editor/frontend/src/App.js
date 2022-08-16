@@ -39,6 +39,7 @@ import * as config from "./config"
 import PropTypes from 'prop-types';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import { Parameters } from './CfnTemplate';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -119,7 +120,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end',
 }));
 
-
 function PersistentDrawerLeft() {
   const theme = useTheme();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -142,14 +142,31 @@ function PersistentDrawerLeft() {
   const [tmpProjectName, setTmpProjectName] = React.useState("")
   const [tmpProjectNameError, setTmpProjectNameError] = React.useState(false)
   const [existedProjectNames, setExistedProjectNames] = React.useState([])
-  const [selectedProjectName, setSelectedProjectName] = React.useState("")
+  const [selectedProjectName, setSelectedProjectName] = React.useState(
+    localStorage.getItem("cfn-editor-selectedProjectName") !== null ?
+    localStorage.getItem("cfn-editor-selectedProjectName") : ""
+  )
 
   const [tmpTemplate, setTmpTemplate] = React.useState({"Name": "", "File": null})
   const [tmpTemplateError, setTmpTemplateError] = React.useState(false)
   const [existedTemplateNames, setExistedTemplateNames] = React.useState([])
-  const [selectedTemplate, setSelectedTemplate] = React.useState({"Name": "", "Body": null})
+  const [selectedTemplate, setSelectedTemplate] = React.useState(
+    localStorage.getItem("cfn-editor-selectedTemplate") !== null ?
+    JSON.parse(localStorage.getItem("cfn-editor-selectedTemplate")) : {"Name": "", "Body": null}
+  )
 
   const [selectedTab, setSelectedTab] = React.useState(0);
+
+  React.useEffect(() => {
+    localStorage.setItem("cfn-editor-selectedProjectName", selectedProjectName)
+  }, [selectedProjectName])
+
+  React.useEffect(() => {
+    console.log(selectedTemplate)
+    localStorage.setItem("cfn-editor-selectedTemplate", JSON.stringify(selectedTemplate))
+
+  }, [selectedTemplate])
+
 
   const handleTabChange = (e, newTab) => {
     setSelectedTab(newTab);
@@ -184,7 +201,7 @@ function PersistentDrawerLeft() {
         setTmpProjectNameError(true)
         return
       }
-      const url = config.BASE_URL + "project"
+      const url = config.BASE_API_URL + "project"
       const option = {
         method: 'POST',
         headers: {
@@ -206,7 +223,7 @@ function PersistentDrawerLeft() {
 
   };
   const handleOpenProjectDialogOpen = () => {
-    const url = config.BASE_URL + "project"
+    const url = config.BASE_API_URL + "project"
     fetch(url)
     .then(res => res.json())
     .then(body => {
@@ -224,7 +241,7 @@ function PersistentDrawerLeft() {
     setOpenProjectDialogOpen(false);
   }
   const handleDeleteProjectDialogOpen = () => {
-    const url = config.BASE_URL + "project"
+    const url = config.BASE_API_URL + "project"
     fetch(url)
     .then(res => res.json())
     .then(body => {
@@ -241,7 +258,7 @@ function PersistentDrawerLeft() {
         setTmpProjectNameError(true)
         return
       }
-      const url = config.BASE_URL + "project"
+      const url = config.BASE_API_URL + "project"
       const option = {
         method: 'DELETE',
         headers: {
@@ -285,7 +302,7 @@ function PersistentDrawerLeft() {
         file = tmpTemplate["File"]
       }
 
-      const url = config.BASE_URL + `project/${selectedProjectName}/template`
+      const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
       const body = new FormData()
       body.append("file", file)
       body.append("name", tmpTemplate["Name"])
@@ -309,7 +326,7 @@ function PersistentDrawerLeft() {
   };
 
   const handleOpenTemplateDialogOpen = () => {
-    const url = config.BASE_URL + `project/${selectedProjectName}/template`
+    const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
     fetch(url)
     .then(res => res.json())
     .then(body => {
@@ -323,7 +340,7 @@ function PersistentDrawerLeft() {
 
   const handleOpenTemplateDialogClose = (submit) => {
     if (submit === true) {
-      const url = config.BASE_URL + `project/${selectedProjectName}/template/${tmpTemplate["Name"]}`
+      const url = config.BASE_API_URL + `project/${selectedProjectName}/template/${tmpTemplate["Name"]}`
       fetch(url)
       .then(res => res.json())
       .then(body => {
@@ -336,7 +353,7 @@ function PersistentDrawerLeft() {
   }
 
   const handleDeleteTemplateDialogOpen = () => {
-    const url = config.BASE_URL + `project/${selectedProjectName}/template`
+    const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
     fetch(url)
     .then(res => res.json())
     .then(body => {
@@ -349,7 +366,7 @@ function PersistentDrawerLeft() {
   }
   const handleDeleteTemplateDialogClose = (submit) => {
     if (submit === true) {
-      const url = config.BASE_URL +`project/${selectedProjectName}/template`
+      const url = config.BASE_API_URL +`project/${selectedProjectName}/template`
       const option = {
         method: 'DELETE',
         headers: {
@@ -662,13 +679,18 @@ function PersistentDrawerLeft() {
         <Box sx={{ width: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={selectedTab} onChange={handleTabChange} aria-label="basic tabs example">
-              <Tab label="Item One" {...a11yProps(0)} />
+              <Tab label="Parameters" {...a11yProps(0)} />
               <Tab label="Item Two" {...a11yProps(1)} />
               <Tab label="Item Three" {...a11yProps(2)} />
             </Tabs>
           </Box>
           <TabPanel value={selectedTab} index={0}>
-            Item One
+            <Parameters
+              projectName={selectedProjectName}
+              templateName={selectedTemplate["Name"]}
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+            />
           </TabPanel>
           <TabPanel value={selectedTab} index={1}>
             Item Two
@@ -677,8 +699,6 @@ function PersistentDrawerLeft() {
             Item Three
           </TabPanel>
         </Box>
-
-
       </Main>
     </Box>
   );

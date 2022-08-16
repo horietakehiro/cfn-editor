@@ -66,10 +66,12 @@ from django.contrib.auth.models import User
 # # router.register(r"cfn_attribute", CfnResourceAttributeViewSet)
 
 
+from django.conf import settings
+from django.conf.urls.static import static
 
 # import backend
 urlpatterns = [
     # path("", include(router.urls)),
     path('admin/', admin.site.urls),
     path('api/', include('backend.urls')),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
