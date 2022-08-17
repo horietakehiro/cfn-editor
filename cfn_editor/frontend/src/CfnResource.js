@@ -90,7 +90,7 @@ const reprValue = (v) => {
   try {
     return JSON.stringify(v)
   } catch (e) {
-    // // console.log(e)
+    // // //// console.log(e)
     return v
   }
 }
@@ -99,7 +99,7 @@ const hasChildProp = (curResource, index, allResources) => {
   if (allResources.length === index + 1) {
     return false
   }
-  // // console.log(curResource)
+  // // //// console.log(curResource)
   return allResources[index + 1]["Property"].startsWith(curResource["Property"])
 }
 
@@ -134,13 +134,14 @@ export const Resources = ({
   const [selectedResourceDetail, setSelectedResourceDetail] = React.useState(null)
   const [selectedProperties, setSelectedProperties] = React.useState([""])
   const [selectedResourceSpec, setSelectedResourceSpec] = React.useState({})
-  const [selectedPropertySpec, setSelectedPropertySpec] = React.useState({})
+  const [selectedPropertySpecs, setSelectedPropertySpecs] = React.useState([])
   const [tmpResourceDetail, setTmpResourceDetail] = React.useState(null)
   const [selectedResourceUrls, setSelectedResourceUrls] = React.useState([])
 
-  const [selectedListProps, setSelectedListProps] = React.useState([{"isList": false, "resource": null}])
+  const [selectedListProps, setSelectedListProps] = React.useState([{ "isList": false, "resource": null }])
   const [selectedListIndex, setSelectedListIndex] = React.useState(0)
-  const [propEditDialogOpen, setPropEditDialogOpen] = React.useState(true)
+  const [propEditDialogOpen, setPropEditDialogOpen] = React.useState(false)
+  const [propEditValue, setPropEditValue] = React.useState({})
 
   React.useEffect(() => {
     // var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__FIELDS__`
@@ -148,7 +149,7 @@ export const Resources = ({
     //   .then(res => res.json())
     //   .then(body => {
     //     setResourceFields({ ...body["Fields"] })
-    //     // // console.log(resourceFields)
+    //     // // //// console.log(resourceFields)
     //   })
     //   .catch(e => console.error(e))
 
@@ -156,7 +157,7 @@ export const Resources = ({
     fetch(url)
       .then(res => res.json())
       .then(body => {
-        // // console.log(body)
+        // // //// console.log(body)
         setResourceTypes(body["Types"])
       })
       .catch(e => console.error(e))
@@ -165,10 +166,10 @@ export const Resources = ({
     // fetch(url)
     //   .then(res => res.json())
     //   .then(body => {
-    //     // // console.log(body)
+    //     // // //// console.log(body)
     //     const docUrl = new URL(body["Url"])
     //     const newUrl = config.BASE_STATIC_URL + docUrl.host + "/" + docUrl.pathname
-    //     // // console.log(newUrl)
+    //     // // //// console.log(newUrl)
     //     setSelectedResourceUrls(newUrl)
     //   })
     //   .catch(e => console.error(e))
@@ -190,7 +191,7 @@ export const Resources = ({
     fetch(url)
       .then(res => res.json())
       .then(body => {
-        // // console.log(body)
+        // // //// console.log(body)
         setSelectedResourceDetail(body["Resource"])
         setTmpResourceDetail(body["Resource"])
       })
@@ -201,7 +202,7 @@ export const Resources = ({
       .then(res => res.json())
       .then(body => {
         setSelectedResourceSpec({ ...body["Resource"] })
-        // // console.log(body["Resource"])
+        // // //// console.log(body["Resource"])
         const docUrl = new URL(body["Resource"]["Documentation"])
         const newUrl = config.BASE_STATIC_URL + docUrl.host + "/" + docUrl.pathname
         setSelectedResourceUrls([...selectedResourceUrls, newUrl])
@@ -211,16 +212,19 @@ export const Resources = ({
   const handleResourceSummaryChange = (key, e) => {
     var newResourceSummary = { ...tmpResourceSummary }
     newResourceSummary[key] = e.target.value
-    setTmpResourceDetail(newResourceSummary)
-    // // console.log(newResourceSummary)
+    // setTmpResourceDetail(newResourceSummary)
+    setTmpResourceSummary(newResourceSummary)
+    // // //// console.log(newResourceSummary)
 
   }
   const handleButtonClick = (kind, e) => {
+
     if (kind === "cancel") {
       if (selectedProperties.length !== 1) {
         setSelectedListProps([...selectedListProps.slice(0, selectedListProps.length - 1)])
         setSelectedProperties([...selectedProperties.slice(0, selectedProperties.length - 1)])
         setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+        setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
       } else {
         setTmpResourceDetail(null)
         setSelectedResourceDetail(null)
@@ -230,88 +234,108 @@ export const Resources = ({
     }
 
     if (kind === "delete") {
-      var newResourceDef = [...resourceDefs]
-      newResourceDef = newResourceDef.filter(p => p["Name"] !== selectedResourceDetail["Name"])
-      setResourceDefs(newResourceDef)
-      setTmpResourceDetail(null)
-      setSelectedResourceDetail(null)
-      // // console.log(newResourceDef)
-
-
     } else if (kind === "save") {
-      var newResourceDef = [...resourceDefs]
-      // // console.log(newResourceDef)
-      if (selectedResourceDetail["Name"] !== tmpResourceDetail["Name"]) {
-        newResourceDef = newResourceDef.filter(p => p["Name"] !== selectedResourceDetail["Name"])
-        newResourceDef.push({ ...tmpResourceDetail })
+
+      var newResourceDetails = []
+      for (var r of tmpResourceDetail) {
+        var newR = {...r}
+        newR["ResourceId"] = tmpResourceSummary["ResourceId"]
+        newR["ResourceNote"] = tmpResourceSummary["ResourceNote"]
+        newResourceDetails.push({
+          ...r, "ResourceNote": tmpResourceSummary["ResourceNote"], "ResourceId": tmpResourceSummary["ResourceId"]})
       }
-      // // console.log(newResourceDef)
 
-      newResourceDef = newResourceDef.map(p => {
-        if (p["Name"] === tmpResourceDetail["Name"]) {
-          return tmpResourceDetail
-        } else {
-          return p
-        }
-      })
-      // // console.log(newResourceDef)
-      setResourceDefs(newResourceDef)
-      setTmpResourceDetail(null)
-      setSelectedResourceDetail(null)
-
-    }
-
-    // update template
-    var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
-    var body = {}
-    for (const p of newResourceDef) {
-      body[p["Name"]] = {}
-      for (const key in p) {
-        if (key === "Name" || key === "Filename" || p[key] === null) {
-          continue
-        }
-        body[p["Name"]][key] = p[key]
+      // update template
+      var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
+      const option = {
+        method: "POST",
+        body: JSON.stringify({
+          "Resources": newResourceDetails,
+          "PrevResourceId": tmpResourceSummary["ResourceId"],
+        })
       }
-    }
-    const option = {
-      method: "POST",
-      body: JSON.stringify({ "Resources": body })
-    }
-    fetch(url, option)
+      fetch(url, option)
       .then(res => res.json())
       .then(body => {
-        // // console.log(body)
+        console.log(body)
+        setSelectedListProps([{"isList": false, "resource": null}])
+        setSelectedProperties([""])
+        setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+        setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
+        setTmpResourceDetail(null)
+        setSelectedResourceDetail(null)
+        setResourceDefs([...body["Resources"]])
+  
       })
       .catch(e => console.error(e))
+
+      // setSelectedListProps([...selectedListProps.slice(0, selectedListProps.length - 1)])
+      // setSelectedProperties([...selectedProperties.slice(0, selectedProperties.length - 1)])
+      // setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+      // setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
+      // setTmpResourceDetail(null)
+      // setSelectedResourceDetail(null)
+
+
+    }
   }
 
-  const onPropertyButtonClick = (resource) => {
-
+  const handlePropEditDialogClose = (resource) => {
     // console.log(resource)
-    // console.log(selectedResourceSpec)
-    // console.log(selectedPropertySpec)
+    // console.log(propEditValue)
+    resource["Value"] = propEditValue[resource["Property"]]
+    var newResource = tmpResourceDetail.filter((r) => {
+      return r["Property"] !== resource["Property"]
+    })
+    newResource.push(resource)
+    newResource.sort((a, b) => {
+      if (a["Property"] > b["Property"]) {
+        return 1
+      } else {
+        return -1
+      }
+    })
+
+    setTmpResourceDetail([...newResource])
+    setSelectedListProps([...selectedListProps.slice(0, selectedListProps.length - 1)])
+    setSelectedProperties([...selectedProperties.slice(0, selectedProperties.length - 1)])
+    // setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+    setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
+
+
+    setPropEditDialogOpen(false)
+
+  }
+
+  const onPropertyButtonClick = (resource, event) => {
+
+    // console.log(tmpResourceDetail)
+
     const isRoot = selectedProperties[selectedProperties.length - 1] === ""
     var baseProperty = resource["Property"].split(".")
     baseProperty = baseProperty[baseProperty.length - 1]
     var property
+
+    var curPropertySpec = selectedPropertySpecs[selectedPropertySpecs.length - 1]
+
     if (isRoot) {
       property = selectedResourceSpec["Properties"][baseProperty]
     } else {
-      property = selectedPropertySpec[Object.keys(selectedPropertySpec)[0]]["Properties"][baseProperty]
-      // property = selectedPropertySpec[`${resource["ResourceType"]}.${baseProperty}`]
+      property = curPropertySpec[Object.keys(curPropertySpec)[0]]["Properties"][baseProperty]
     }
-
-    setSelectedListProps([...selectedListProps, {"isList": "Type" in property & property["Type"] === "List", "resource": {...resource}}])
-    // // console.log(selectedResourceSpec)
+    setSelectedListProps([...selectedListProps, { "isList": "Type" in property & property["Type"] === "List", "resource": { ...resource } }])
+    // // //// console.log(selectedResourceSpec)
     const isPrimitive = "PrimitiveType" in property || "PrimitiveItemType" in property
 
 
+    setSelectedProperties((prev => [...prev, resource["Property"]]))
+
     // open edit dialog
     if (isPrimitive) {
-
+      setPropEditDialogOpen(true)
 
     } else {
-      setSelectedProperties((prev => [...prev, resource["Property"]]))
+      // setSelectedProperties((prev => [...prev, resource["Property"]]))
 
       // get child props spec
       var propertyType = resource["Property"].split(".")[resource["Property"].split(".").length - 1]
@@ -322,23 +346,23 @@ export const Resources = ({
         if (isRoot) {
           tmp = selectedResourceSpec["Properties"][propertyType]
         } else {
-          tmp = selectedPropertySpec[Object.keys(selectedPropertySpec)[0]]["Properties"][propertyType]
+          tmp = curPropertySpec[Object.keys(curPropertySpec)[0]]["Properties"][propertyType]
         }
-        console.log(propertyType)
+        //// console.log(propertyType)
         propertyType = "ItemType" in tmp ? `${resource["ResourceType"]}.${tmp["ItemType"]}` : `${resource["ResourceType"]}.${tmp["Type"]}`
       }
       // propertyType = propertyType === "Tags" ? "Tag" : `${resource["ResourceType"]}.${propertyType}`
-      // console.log(propertyType)
+      // //// console.log(propertyType)
 
       const url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/${propertyType}`
       fetch(url)
         .then(res => res.json())
         .then(body => {
-          // console.log(body)
+          // //// console.log(body)
           const docUrl = new URL(body["Property"][propertyType]["Documentation"])
           const newUrl = config.BASE_STATIC_URL + docUrl.host + "/" + docUrl.pathname
           setSelectedResourceUrls([...selectedResourceUrls, newUrl])
-          setSelectedPropertySpec({ ...body["Property"] })
+          setSelectedPropertySpecs([...selectedPropertySpecs, { ...body["Property"] }])
         })
     }
 
@@ -350,7 +374,7 @@ export const Resources = ({
     const isRoot = selectedProperties[selectedProperties.length - 1] === ""
 
     if (resource["Property"].startsWith("BlockDeviceMappings[0].Ebs")) {
-      // console.log(resource, selectedProperties[selectedProperties.length-1].split(".").length, resource["Property"].split(".").length)
+      // //// console.log(resource, selectedProperties[selectedProperties.length-1].split(".").length, resource["Property"].split(".").length)
     }
 
     if (isRoot) {
@@ -373,34 +397,44 @@ export const Resources = ({
 
   const handleListAppend = () => {
 
-    const listProp = selectedListProps[selectedListProps.length-1]["resource"]["Property"]
-    console.log(listProp)
+    const listProp = selectedListProps[selectedListProps.length - 1]["resource"]["Property"]
+    //// console.log(listProp)
     // filter resources to append
     var targetResourceSet = tmpResourceDetail.filter((r) => {
-      if (r["Property"].startsWith(`${listProp}[`)) {
-        if (r["Property"].split(".").length - listProp.split(".").length !== 1) {
-          return false
-        } else {
-          return true
-        }
+      return r["Property"].startsWith(`${listProp}[`)
+    })
+    // count number of rows per index
+    var num_per_index = {}
+    for (var r of targetResourceSet) {
+      const rx = new RegExp(`^${listProp}\\[(\\d+)\\]`)
+      const index = r["Property"].match(rx)[1]
+      if (index in num_per_index) {
+        num_per_index[index] = num_per_index[index] + 1
       } else {
-        return false
+        num_per_index[index] = 1
       }
-    })
-    console.log(targetResourceSet)
+    }
+    // use min value
+    var minValue = Math.min(...Object.keys(num_per_index).map((k) => num_per_index[k]))
+    // var maxValue = Math.max(...Object.keys(num_per_index).map((k) => num_per_index[k]))
+    var minIndex = Object.keys(num_per_index).find((k) => num_per_index[k] == minValue)
+
+    var curLastIndex = Math.max(...Object.keys(num_per_index).map((k) => parseInt(k)))
+
+    //// console.log(targetResourceSet)
     var targetResource = targetResourceSet.filter((r) => {
-      return r["Property"].startsWith(`${listProp}[0]`)
+      return r["Property"].startsWith(`${listProp}[${minIndex}]`)
     })
-    const numSet = parseInt(targetResourceSet.length / targetResource.length)
+    // const numSet = parseInt(targetResourceSet.length / targetResource.length)
 
     var newResource = []
     for (var r of targetResource) {
-      newResource.push({...r, "value": null, "Property": r["Property"].replace(`${listProp}[0]`, `${listProp}[${numSet}]`)})
+      newResource.push({ ...r, "value": null, "Property": r["Property"].replace(`${listProp}[${minIndex}]`, `${listProp}[${curLastIndex + 1}]`) })
     }
-    console.log(newResource)
+    //// console.log(newResource)
 
     var newResources = tmpResourceDetail.concat(newResource)
-    newResources.sort((a,b) => {
+    newResources.sort((a, b) => {
       if (a["Property"] > b["Property"]) {
         return 1
       } else {
@@ -411,12 +445,13 @@ export const Resources = ({
 
   }
 
+
   const handleListRemove = (index) => {
     if (index < 0) {
       return
     }
-    const listProp = selectedListProps[selectedListProps.length-1]["resource"]["Property"]
-    console.log(listProp)
+    const listProp = selectedListProps[selectedListProps.length - 1]["resource"]["Property"]
+    //// console.log(listProp)
     // filter resources to keep
     var targetResource = tmpResourceDetail.filter((r) => {
       return !r["Property"].startsWith(`${listProp}[${index}]`)
@@ -436,22 +471,20 @@ export const Resources = ({
     for (var r of targetResource) {
       var newR
       if (isLastOne) {
-        newR = {...r}
+        newR = { ...r }
       } else if (r["Property"].startsWith(`${listProp}[`) & r["Property"] > `${listProp}[${index}]`) {
-        const rx = new RegExp(`^${listProp}\\[(\\d+)\\]`) 
-        console.log(r["Property"])
-        console.log(rx)
+        const rx = new RegExp(`^${listProp}\\[(\\d+)\\]`)
         const curIndex = r["Property"].match(rx)[1]
-        const newIndex = curIndex - 1 
-        newR = {...r, "Property": r["Property"].replace(`${listProp}[${curIndex}]`, `${listProp}[${newIndex}]`)}
+        const newIndex = curIndex - 1
+        newR = { ...r, "Property": r["Property"].replace(`${listProp}[${curIndex}]`, `${listProp}[${newIndex}]`) }
       } else {
-        newR = {...r}
+        newR = { ...r }
       }
-      newResource.push({...newR})
+      newResource.push({ ...newR })
     }
-    console.log(newResource)
+    //// console.log(newResource)
 
-    newResource.sort((a,b) => {
+    newResource.sort((a, b) => {
       if (a["Property"] > b["Property"]) {
         return 1
       } else {
@@ -625,52 +658,84 @@ export const Resources = ({
                 Properties
                 <div>
 
-                <Stack direction={"row"} spacing={2}>
-                  <Button
-                    sx={{ display: (selectedListProps[selectedListProps.length-1]["isList"]) ? null : "none" }}
-                    style={{ justifyContent: "flex-start", textTransform: "none" }}
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleListAppend()}
-                  >
-                    APPEND
-                  </Button>
-                  <Button
-                    sx={{ display: (selectedListProps[selectedListProps.length-1]["isList"]) ? null : "none" }}
-                    style={{ justifyContent: "flex-start", textTransform: "none" }}
-                    variant="contained"
-                    startIcon={<RemoveIcon />}
-                    onClick={() => handleListRemove(selectedListIndex)}
-                  >
-                    REMOVE
-                  </Button>
-                  <TextField
-                    margin="dense"
-                    id="RemoveIndex"
-                    label="Index to be removed"
-                    fullWidth={false}
-                    variant="standard"
-                    required={true}
-                    type={"number"}
-                    defaultValue={selectedListIndex}
-                    onChange={(e) => {setSelectedListIndex(e.target.value)}}
-                  />
-                </Stack>
+                  <Stack direction={"row"} spacing={2}>
+                    <Button
+                      sx={{ display: (selectedListProps[selectedListProps.length - 1]["isList"]) ? null : "none" }}
+                      style={{ justifyContent: "flex-start", textTransform: "none" }}
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={() => handleListAppend()}
+                    >
+                      APPEND
+                    </Button>
+                    <Button
+                      sx={{ display: (selectedListProps[selectedListProps.length - 1]["isList"]) ? null : "none" }}
+                      style={{ justifyContent: "flex-start", textTransform: "none" }}
+                      variant="contained"
+                      startIcon={<RemoveIcon />}
+                      onClick={() => handleListRemove(selectedListIndex)}
+                    >
+                      REMOVE
+                    </Button>
+                    <TextField
+                      sx={{ display: (selectedListProps[selectedListProps.length - 1]["isList"]) ? null : "none" }}
+                      margin="dense"
+                      id="RemoveIndex"
+                      label="Index to be removed"
+                      fullWidth={false}
+                      variant="standard"
+                      required={true}
+                      type={"number"}
+                      defaultValue={selectedListIndex}
+                      onChange={(e) => { setSelectedListIndex(e.target.value) }}
+                    />
+                  </Stack>
                 </div>
 
                 <Stack direction="column" spacing={2}>
                   {tmpResourceDetail?.map((r, index) => {
                     return (
-                      <Button
-                        sx={{ display: shouldDisplay(r, index) ? null : "none" }}
-                        style={{ justifyContent: "flex-start", textTransform: "none" }}
-                        variant={
-                          (hasChildProp(r, index, tmpResourceDetail) & !r["IsOmittable"]) || r["Value"] !== null ? "contained" : "outlined"}
-                        startIcon={<EditIcon />}
-                        onClick={() => onPropertyButtonClick(r)}
-                      >
-                        {r["Required"] === "Yes" ? `${r["Property"]}(Required)` : `${r["Property"]}`}
-                      </Button>
+                      <React.Fragment>
+                        <Button
+                          sx={{ display: shouldDisplay(r, index) ? null : "none" }}
+                          style={{ justifyContent: "flex-start", textTransform: "none" }}
+                          variant={
+                            (hasChildProp(r, index, tmpResourceDetail) & !r["IsOmittable"]) || (r["Value"] !== null & r["Value"] !== undefined) ? "contained" : "outlined"}
+                          startIcon={<EditIcon />}
+                          onClick={(e) => onPropertyButtonClick(r, e)}
+                        >
+                          {r["Required"] === "Yes" ? `${r["Property"]}(Required)` : `${r["Property"]}`}
+                        </Button>
+                        <Dialog
+                          open={Boolean(r["Property"] === selectedProperties[selectedProperties.length - 1] & propEditDialogOpen)}
+                          onClose={() => handlePropEditDialogClose(r)}
+                        >
+                          <DialogTitle>Edit {r["Property"]}'s Value</DialogTitle>
+                          <DialogContent>
+                            <DialogContentText>
+                              Edit Property Value.
+                            </DialogContentText>
+                            <div style={{ height: 400, width: '100%' }}>
+                              <TextField
+                                autoFocus
+                                margin="dense"
+                                id="Value"
+                                label="Value"
+                                fullWidth
+                                variant="standard"
+                                defaultValue={r["Property"] in propEditValue ? propEditValue[r["Property"]] : null}
+                                onChange={(e) => {
+                                  // const p = r["Property"]
+                                  setPropEditValue({ ...propEditValue, [r["Property"]]: e.target.value })
+                                }}
+                              />
+                            </div>
+                          </DialogContent>
+                          <DialogActions>
+                            <Button onClick={() => handlePropEditDialogClose(r)}>OK</Button>
+                          </DialogActions>
+                        </Dialog>
+                      </React.Fragment>
                     )
                   })}
                 </Stack>

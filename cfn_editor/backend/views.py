@@ -1,3 +1,4 @@
+import pandas as pd
 from copy import deepcopy
 import json
 from django.http import HttpResponse, HttpRequest, JsonResponse
@@ -244,3 +245,31 @@ def resource(request:HttpRequest, project_name:str, template_name:str, resource_
             
             resource = sorted(df.to_dict(orient="records"), key=lambda r: r["Property"])
             return JsonResponse({"Resource": resource})
+
+    if request.method == "POST":
+
+        resources = json.loads(request.body)
+        print(resources)
+        prev_resource_id = resources["PrevResourceId"]
+        resources = resources["Resources"]
+        # cur_resource_id = resources["curResourceId"]
+
+        df = pd.DataFrame.from_dict(resources)
+        df_by_id = df.groupby(["ResourceId"])
+        unflatten = lambda d: cfn_def.CfnResource.from_json_def(d.to_dict(orient="record"))
+        dicts = df_by_id.apply(unflatten).values
+        print(dicts)
+        new_body = deepcopy(target_template.body)
+        new_resources:dict = deepcopy(new_body["Resources"])
+        new_resources.pop(prev_resource_id)
+        for d in dicts:
+            new_resources.update(d)
+        new_body["Resources"] = new_resources
+
+        target_template = save_template(project_name, template_name, body=new_body)
+
+        df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
+        df = target_template.summarise_resources(df)
+        resources = df.to_dict(orient="records")
+        print(json.dumps(resources, indent=2))
+        return JsonResponse({"Resources": resources})
