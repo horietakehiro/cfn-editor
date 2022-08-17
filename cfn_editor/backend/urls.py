@@ -11,5 +11,7 @@ urlpatterns = [
     path("project/<str:project_name>/template/<str:template_name>", views.template, name="Template"),
     path("project/<str:project_name>/template/<str:template_name>/parameter", views.parameter, name="Parameter"),
     path("project/<str:project_name>/template/<str:template_name>/parameter/<str:parameter_name>", views.parameter, name="Parameter"),
+    path("project/<str:project_name>/template/<str:template_name>/resource", views.resource, name="Resource"),
+    path("project/<str:project_name>/template/<str:template_name>/resource/<str:resource_name>", views.resource, name="Resource"),
 
 ]

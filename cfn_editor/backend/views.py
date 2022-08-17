@@ -204,3 +204,43 @@ def parameter(request:HttpRequest, project_name:str, template_name:str, paramete
         return JsonResponse({"Parameters": df.to_dict(orient="records")})
 
         
+@csrf_exempt
+def resource(request:HttpRequest, project_name:str, template_name:str, resource_name:str=None):
+    target_template = load_template(project_name, template_name)
+
+    if request.method == "GET":
+        if resource_name is None:
+
+            df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
+            df = target_template.summarise_resources(df)
+            resources = df.to_dict(orient="records")
+            print(json.dumps(resources, indent=2))
+            return JsonResponse({"Resources": resources})
+
+
+        if resource_name == "__TYPES__":
+            resource_types = sorted(spec.spec["ResourceTypes"].keys())
+            return JsonResponse({"Types": resource_types})
+
+
+        if resource_name == "Tag":
+            prop_spec = spec.get_property_spec(None, resource_name)
+            print(json.dumps(prop_spec, indent=2))
+            return JsonResponse({"Property": prop_spec})
+
+        if "::" in resource_name:
+            if "." in resource_name:
+                prop_spec = spec.get_property_spec(None, resource_name)
+                print(json.dumps(prop_spec, indent=2))
+                return JsonResponse({"Property": prop_spec})
+
+            resource_spec = spec.get_resource_spec(resource_name)
+            return JsonResponse({"Resource": resource_spec})
+
+
+        if "::" not in  resource_name:
+            df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
+            df = df[df["ResourceId"] == resource_name]
+            
+            resource = sorted(df.to_dict(orient="records"), key=lambda r: r["Property"])
+            return JsonResponse({"Resource": resource})

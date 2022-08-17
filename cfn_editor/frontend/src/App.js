@@ -39,7 +39,8 @@ import * as config from "./config"
 import PropTypes from 'prop-types';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import { Parameters } from './CfnTemplate';
+import { Parameters } from './CfnParameter';
+import { Resources } from "./CfnResource"
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -680,7 +681,7 @@ function PersistentDrawerLeft() {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={selectedTab} onChange={handleTabChange} aria-label="basic tabs example">
               <Tab label="Parameters" {...a11yProps(0)} />
-              <Tab label="Item Two" {...a11yProps(1)} />
+              <Tab label="Resources" {...a11yProps(1)} />
               <Tab label="Item Three" {...a11yProps(2)} />
             </Tabs>
           </Box>
@@ -693,7 +694,12 @@ function PersistentDrawerLeft() {
             />
           </TabPanel>
           <TabPanel value={selectedTab} index={1}>
-            Item Two
+            <Resources
+              projectName={selectedProjectName}
+              templateName={selectedTemplate["Name"]}
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+            />
           </TabPanel>
           <TabPanel value={selectedTab} index={2}>
             Item Three
