@@ -38,6 +38,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
+import CopyIcon from '@mui/icons-material/ContentCopy';
 import RemoveIcon from '@mui/icons-material/Remove';
 
 import Iframe from 'react-iframe'
@@ -62,6 +63,9 @@ import FormHelperText from '@mui/material/FormHelperText';
 import Switch from '@mui/material/Switch';
 import { maxWidth } from '@mui/system';
 
+import LoadingButton from '@mui/lab/LoadingButton';
+// import Autocomplete from '@mui/material/Autocomplete';
+
 
 const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -70,6 +74,7 @@ const Item = styled(Paper)(({ theme }) => ({
   textAlign: 'left',
   color: theme.palette.text.secondary,
 }));
+
 
 const repr = (v) => {
   if (Array.isArray(v)) {
@@ -137,6 +142,11 @@ export const Resources = ({
   const [selectedPropertySpecs, setSelectedPropertySpecs] = React.useState([])
   const [tmpResourceDetail, setTmpResourceDetail] = React.useState(null)
   const [selectedResourceUrls, setSelectedResourceUrls] = React.useState([])
+  const [newResourceSummary, setNewResourceSummary] = React.useState({"ResourceType": null, "ResourceId": null})
+  const [newResourceLoading, setNewResourceLoading] = React.useState(false)
+
+  const [cloneResourceDialogOpen, setCloneResourceDialogOpen] = React.useState(false)
+  const [cloneResourceId, setCloneResourceId] = React.useState("")
 
   const [selectedListProps, setSelectedListProps] = React.useState([{ "isList": false, "resource": null }])
   const [selectedListIndex, setSelectedListIndex] = React.useState(0)
@@ -144,35 +154,15 @@ export const Resources = ({
   const [propEditValue, setPropEditValue] = React.useState({})
 
   React.useEffect(() => {
-    // var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__FIELDS__`
-    // fetch(url)
-    //   .then(res => res.json())
-    //   .then(body => {
-    //     setResourceFields({ ...body["Fields"] })
-    //     // // //// console.log(resourceFields)
-    //   })
-    //   .catch(e => console.error(e))
-
     var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__TYPES__`
     fetch(url)
       .then(res => res.json())
       .then(body => {
-        // // //// console.log(body)
+        console.log(body)
         setResourceTypes(body["Types"])
       })
       .catch(e => console.error(e))
 
-    // url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__URL__`
-    // fetch(url)
-    //   .then(res => res.json())
-    //   .then(body => {
-    //     // // //// console.log(body)
-    //     const docUrl = new URL(body["Url"])
-    //     const newUrl = config.BASE_STATIC_URL + docUrl.host + "/" + docUrl.pathname
-    //     // // //// console.log(newUrl)
-    //     setSelectedResourceUrls(newUrl)
-    //   })
-    //   .catch(e => console.error(e))
 
     url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
     fetch(url)
@@ -217,7 +207,7 @@ export const Resources = ({
     // // //// console.log(newResourceSummary)
 
   }
-  const handleButtonClick = (kind, e) => {
+  const handleButtonClick = (kind, r) => {
 
     if (kind === "cancel") {
       if (selectedProperties.length !== 1) {
@@ -234,15 +224,39 @@ export const Resources = ({
     }
 
     if (kind === "delete") {
+      var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/${selectedResourceSummary["ResourceId"]}`
+      const option = {
+        method: "DELETE",
+      }
+      fetch(url, option)
+        .then(res => res.json())
+        .then(body => {
+          console.log(body)
+          setSelectedListProps([{ "isList": false, "resource": null }])
+          setSelectedProperties([""])
+          setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+          setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
+          setTmpResourceDetail(null)
+          setSelectedResourceDetail(null)
+          setResourceDefs([...body["Resources"]])
+        })
+        .catch(e => console.error(e))
+
+
     } else if (kind === "save") {
 
+      if (r !== null) {
+        var tmpResourceSummary = r
+      }
       var newResourceDetails = []
+      console.log(tmpResourceSummary)
       for (var r of tmpResourceDetail) {
-        var newR = {...r}
+        var newR = { ...r }
         newR["ResourceId"] = tmpResourceSummary["ResourceId"]
         newR["ResourceNote"] = tmpResourceSummary["ResourceNote"]
         newResourceDetails.push({
-          ...r, "ResourceNote": tmpResourceSummary["ResourceNote"], "ResourceId": tmpResourceSummary["ResourceId"]})
+          ...r, "ResourceNote": tmpResourceSummary["ResourceNote"], "ResourceId": tmpResourceSummary["ResourceId"]
+        })
       }
 
       // update template
@@ -255,19 +269,19 @@ export const Resources = ({
         })
       }
       fetch(url, option)
-      .then(res => res.json())
-      .then(body => {
-        console.log(body)
-        setSelectedListProps([{"isList": false, "resource": null}])
-        setSelectedProperties([""])
-        setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
-        setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
-        setTmpResourceDetail(null)
-        setSelectedResourceDetail(null)
-        setResourceDefs([...body["Resources"]])
-  
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then(body => {
+          console.log(body)
+          setSelectedListProps([{ "isList": false, "resource": null }])
+          setSelectedProperties([""])
+          setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
+          setSelectedPropertySpecs([...selectedPropertySpecs.slice(0, selectedPropertySpecs.length - 1)])
+          setTmpResourceDetail(null)
+          setSelectedResourceDetail(null)
+          setResourceDefs([...body["Resources"]])
+
+        })
+        .catch(e => console.error(e))
 
       // setSelectedListProps([...selectedListProps.slice(0, selectedListProps.length - 1)])
       // setSelectedProperties([...selectedProperties.slice(0, selectedProperties.length - 1)])
@@ -495,10 +509,63 @@ export const Resources = ({
 
   }
 
+  const handleNewResourceAdd = (type, e) => {
+    if (type !== "submit") {
+      console.log(e.target.value)
+      setNewResourceSummary({...newResourceSummary, [type]: e.target.value})
+      return
+    }
+
+    if (newResourceSummary["ResourceId"] === null | newResourceSummary["ResourceType"] === null) {
+      return
+    }
+
+    setNewResourceLoading(true)
+    // update template
+    var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
+    const option = {
+      method: "POST",
+      body: JSON.stringify({
+        "ResourceType": newResourceSummary["ResourceType"],
+        "ResourceId": newResourceSummary["ResourceId"],
+      })
+    }
+    fetch(url, option)
+      .then(res => res.json())
+      .then(body => {
+        console.log(body)
+        var newResource = {...newResourceSummary, "ResourceNote": null}
+        setResourceDefs([...resourceDefs, newResource])
+
+        handleResourceSelected(newResource)
+
+        setNewResourceSummary({"ResourceType": null, "ResourceId": null})
+      })
+      .catch(e => console.error(e))
+      .finally(() => setNewResourceLoading(false))
+  }
+
+  const handleCloneResourceDialogOpen = () => {
+    setCloneResourceId(`${selectedResourceSummary["ResourceId"]}Copy`)
+    setCloneResourceDialogOpen(true)
+  }
+  const handleCloneResourceDialogClose = (submit) => {
+    if (submit) {
+      const newResourceSummary = {...tmpResourceSummary, "ResourceId": cloneResourceId}
+      console.log(newResourceSummary)
+      setTmpResourceSummary(newResourceSummary)
+      handleButtonClick("save", newResourceSummary)
+    }
+
+    setCloneResourceDialogOpen(false)
+  }
+
   if (selectedResourceDetail === null) {
     return (
-
-      <div>
+      <Stack
+        spacing={2}
+        direction={"column"}
+      >
         <TableContainer component={Paper}>
           <Table aria-label="simple table" stickyHeader={true}>
             <TableHead>
@@ -551,31 +618,89 @@ export const Resources = ({
             </TableBody>
           </Table>
         </TableContainer>
-        <div>
-          {/* <Stack direction="raw" spacing={2}> */}
+        <Stack direction="raw" spacing={2}>
           <Grid
+            // direction={"row"}
+            spacing={2}
             container
             justifyContent={"center"}
+            alignItems={"flex-end"}
           >
-            <Button
-              style={{ alignItems: 'center', }}
-              variant={"contained"}
-              startIcon={<AddIcon />}
-            // onClick={() => {
-            //   var param = {}
-            //   for (const f of Object.entries(resourceFields)) {
-            //     param[f[0]] = null
-            //   }
-            //   return handleResourceSelected(param)
-            // }}
-            >
-              ADD
-            </Button>
-          </Grid>
-          {/* </Stack> */}
-        </div>
+            <Grid item>
+              {/* <TextField
+                autoFocus
+                margin="dense"
+                id="Type"
+                label="Type"
+                fullWidth={false}
+                variant="standard"
+                required={true}
+                onChange={(e) => handleNewResourceAdd("ResourceType", e)}
+                select={true}
+              >
+                {resourceTypes?.map(r => {
+                  return (
+                    <MenuItem key={r} value={r}>
+                      {r}
+                    </MenuItem>
+                  )
+                })}
+              </TextField> */}
+              <Autocomplete
+                disablePortal={false}
+                id="Type"
+                options={resourceTypes}
+                sx={{ width: 300 }}
+                onChange={(e, value) => handleNewResourceAdd("ResourceType", {target: {value: value}})}
+                
+                // fullWidth={true}
+                renderInput={(params) => <TextField
+                    {...params}
+                    label="Type"
+                    variant='standard'
+                    fullWidth={true}
+                />}
+              />
+            </Grid>
+            <Grid item>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="Id"
+                label="Id"
+                fullWidth={false}
+                variant="standard"
+                required={true}
+                onChange={(e) => handleNewResourceAdd("ResourceId", e)}
+              />
+            </Grid>
+            <Grid item>
+              {/* <Button
+                style={{ alignItems: 'center', }}
+                variant={"contained"}
+                startIcon={<AddIcon />}
+                onClick={(e) => handleNewResourceAdd("submit", e)}
+              >
+                ADD
+              </Button> */}
+              <LoadingButton
+                // size="small"
+                style={{ alignItems: 'center', }}
+                // color="secondary"
+                onClick={(e) => handleNewResourceAdd("submit", e)}
+                // onClick={handleClick}
+                loading={newResourceLoading}
+                loadingPosition="start"
+                // startIcon={<SaveIcon />}
+                variant="contained"
+              >
+                ADD
+              </LoadingButton>
+            </Grid>
 
-      </div>
+          </Grid>
+        </Stack>
+      </Stack>
 
     )
   } else {
@@ -602,26 +727,60 @@ export const Resources = ({
               <Button
                 variant={"outlined"}
                 startIcon={<ArrowBackIcon />}
-                onClick={(e) => handleButtonClick("cancel", e)}
+                onClick={() => handleButtonClick("cancel", null)}
               >
                 CANCEL
               </Button>
               <Button
                 variant={"outlined"}
                 startIcon={<DeleteIcon />}
-                onClick={(e) => handleButtonClick("delete", e)}
+                onClick={() => handleButtonClick("delete", null)}
               >
                 DELETE
               </Button>
               <Button
                 variant="contained"
                 startIcon={<SaveIcon />}
-                onClick={(e) => handleButtonClick("save", e)}
+                onClick={() => handleButtonClick("save", null)}
               >
                 SAVE
               </Button>
+              <Button
+                variant="contained"
+                startIcon={<CopyIcon />}
+                onClick={() => handleCloneResourceDialogOpen()}
+              >
+                CLONE
+              </Button>
+
             </Stack>
 
+            <Dialog
+              open={cloneResourceDialogOpen}
+              onClose={() => handleCloneResourceDialogClose(false)}
+            >
+              <DialogTitle>Clone Resource</DialogTitle>
+              <DialogContent>
+                <DialogContentText>
+                  Clone resource.
+                </DialogContentText>
+                <div style={{ height: 400, width: '100%' }}>
+                  <TextField
+                    autoFocus
+                    margin="dense"
+                    id="NewId"
+                    label="New Resource Id"
+                    fullWidth
+                    variant="standard"
+                    defaultValue={`${selectedResourceSummary["ResourceId"]}Copy`}
+                    onChange={(e) => setCloneResourceId(e.target.value)}
+                  />
+                </div>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => handleCloneResourceDialogClose(true)}>OK</Button>
+              </DialogActions>
+            </Dialog>
           </div>
           <Item>
             <Box
@@ -639,9 +798,23 @@ export const Resources = ({
                   fullWidth={false}
                   variant="standard"
                   required={true}
+                  disabled={selectedResourceSummary["ResourceId"] !== null ? selectedResourceSummary["ResourceId"] : null}
                   defaultValue={selectedResourceSummary["ResourceId"] !== null ? selectedResourceSummary["ResourceId"] : null}
                   onChange={(e) => handleResourceSummaryChange("ResourceId", e)}
                 />
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  id="Type"
+                  label="Type"
+                  fullWidth={true}
+                  variant="standard"
+                  required={true}
+                  disabled={selectedResourceSummary["ResourceType"] !== null ? selectedResourceSummary["ResourceType"] : null}
+                  defaultValue={selectedResourceSummary["ResourceType"] !== null ? selectedResourceSummary["ResourceType"] : null}
+                  onChange={(e) => handleResourceSummaryChange("ResourceType", e)}
+                />
+
                 <TextField
                   autoFocus
                   margin="dense"
@@ -735,6 +908,7 @@ export const Resources = ({
                             <Button onClick={() => handlePropEditDialogClose(r)}>OK</Button>
                           </DialogActions>
                         </Dialog>
+
                       </React.Fragment>
                     )
                   })}

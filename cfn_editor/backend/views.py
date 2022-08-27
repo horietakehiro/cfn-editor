@@ -247,25 +247,45 @@ def resource(request:HttpRequest, project_name:str, template_name:str, resource_
             return JsonResponse({"Resource": resource})
 
     if request.method == "POST":
-
-        resources = json.loads(request.body)
-        print(resources)
-        prev_resource_id = resources["PrevResourceId"]
-        resources = resources["Resources"]
-        # cur_resource_id = resources["curResourceId"]
+        body = json.loads(request.body)
+        print(body)
+        if "Resources" not in body:
+            new_def = cfn_def.CfnResource(
+                resource_id=body["ResourceId"], resource_def={
+                    "Type": body["ResourceType"]
+                }
+            )
+            resources = new_def.to_df("Resource_Property_Detail").to_dict(orient="record")
+        else:
+            resources = body["Resources"]
 
         df = pd.DataFrame.from_dict(resources)
+
+        print(df.info())
         df_by_id = df.groupby(["ResourceId"])
         unflatten = lambda d: cfn_def.CfnResource.from_json_def(d.to_dict(orient="record"))
         dicts = df_by_id.apply(unflatten).values
         print(dicts)
         new_body = deepcopy(target_template.body)
         new_resources:dict = deepcopy(new_body["Resources"])
-        new_resources.pop(prev_resource_id)
+        # new_resources.pop(prev_resource_id)
         for d in dicts:
             new_resources.update(d)
         new_body["Resources"] = new_resources
 
+        target_template = save_template(project_name, template_name, body=new_body)
+
+        df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
+        df = target_template.summarise_resources(df)
+        resources = df.to_dict(orient="records")
+        print(json.dumps(resources, indent=2))
+        return JsonResponse({"Resources": resources})
+
+    if request.method == "DELETE":
+        new_body = deepcopy(target_template.body)
+        new_resources:dict = deepcopy(new_body["Resources"])
+        new_resources.pop(resource_name)
+        new_body["Resources"] = new_resources
         target_template = save_template(project_name, template_name, body=new_body)
 
         df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
