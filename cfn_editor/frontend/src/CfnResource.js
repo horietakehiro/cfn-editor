@@ -64,6 +64,9 @@ import Switch from '@mui/material/Switch';
 import { maxWidth } from '@mui/system';
 
 import LoadingButton from '@mui/lab/LoadingButton';
+// import FormHelperText from '@mui/material/FormHelperText';
+
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/jpn';
@@ -167,6 +170,9 @@ export const Resources = ({
   const [propEditValue, setPropEditValue] = React.useState({})
 
   const [inputType, setInputType] = React.useState("PlainText")
+
+  const [copyText, setCopyText] = React.useState("")
+  const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
     var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__TYPES__`
@@ -327,7 +333,7 @@ export const Resources = ({
           return -1
         }
       })
-  
+
       setTmpResourceDetail([...newResource])
     }
 
@@ -590,11 +596,11 @@ export const Resources = ({
   const handleEditPropChange = (r, e, key) => {
     var newProp
     if (propEditValue.hasOwnProperty(r["Property"])) {
-      newProp = {...propEditValue[r["Property"]], [key]: e.target.value}
+      newProp = { ...propEditValue[r["Property"]], [key]: e.target.value }
     } else {
-      newProp = {...{"Value": null, "Note": null}, [key]: e.target.value}      
+      newProp = { ...{ "Value": null, "Note": null }, [key]: e.target.value }
     }
-    setPropEditValue({...propEditValue, [r["Property"]]: newProp})
+    setPropEditValue({ ...propEditValue, [r["Property"]]: newProp })
   }
 
   if (selectedResourceDetail === null) {
@@ -925,86 +931,139 @@ export const Resources = ({
                             <DialogContentText>
                               Edit Property.
                             </DialogContentText>
-                            {/* <div style={{ height: 400, width: '100%' }}> */}
+                            <Grid
+                              spacing={2}
+                              container
+                              justifyContent={"left"}
+                              alignItems={"flex-start"}
+                              direction={"column"}
+                            >
+                            <Grid item>
                             <TextField
-                                    autoFocus
-                                    margin="dense"
-                                    id="Note"
-                                    label="Note"
-                                    fullWidth
-                                    type={"text"}
-                                    variant="standard"
-                                    value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Note"] : ""}
-                                    onChange={(e) => handleEditPropChange(r, e, "Note")}
+                              autoFocus
+                              margin="dense"
+                              id="Note"
+                              label="Note"
+                              fullWidth
+                              type={"text"}
+                              variant="standard"
+                              value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Note"] : ""}
+                              onChange={(e) => handleEditPropChange(r, e, "Note")}
                             />
-                              <Grid
-                                spacing={2}
-                                container
-                                justifyContent={"center"}
-                                alignItems={"flex-end"}
-                                direction={"raw"}
-                              >
-                                <Grid item>
-                                  <Select
-                                    labelId="InputType"
-                                    id="InputType"
-                                    value={inputType}
-                                    label="InputType"
-                                    onChange={(e) => handleInputTypeChange(e)}
-                                  >
-                                    <MenuItem value={"PlainText"}>PlainText</MenuItem>
-                                    <MenuItem value={"Ref"}>Ref</MenuItem>
-                                    <MenuItem value={"GetAttr"}>GetAttr</MenuItem>
-                                  </Select>
-                                </Grid>
-                                <Grid item>
-                                  <TextField
-                                    autoFocus
-                                    margin="dense"
-                                    id="Value"
-                                    label="Value"
-                                    fullWidth
-                                    type={"text"}
-                                    variant="standard"
-                                    select={inputType !== "PlainText" | r["Type"] === "Boolean"}
-                                    helperText={
-                                      r["Type"].startsWith("List") ? "separate values with connma" : ""
-                                    }
-                                    value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Value"] : ""}
-                                    onChange={(e) => handleEditPropChange(r, e, "Value")
-                                      // var newProp = 
-                                      // setPropEditValue({ ...propEditValue, [r["Property"]]: {"Value": e.target.value} })
-                                    }
-                                  >
-                                    {
-                                      inputType === "PlainText"
-                                        ?
-                                        ["TRUE", "FALSE"].map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)
-                                        : inputType === "Ref"
-                                          ?
-                                          parameterDefs.map((p) => {
-                                            return (
-                                              <MenuItem key={p["Name"]} value={JSON.stringify({ "Ref": p["Name"] })}>{`${p["Name"]}(Parameter)`}</MenuItem>
-                                            )
-                                          }).concat(
-                                            resourceDefs.map((r) => {
-                                              return (
-                                                <MenuItem key={r["ResourceId"]} value={JSON.stringify({ "Ref": r["ResourceId"] })}>{`${r["ResourceId"]}(${r["ResourceType"]})`}</MenuItem>
-                                              )
-                                            })
-                                          )
-                                          :
-                                          <div></div>
-                                    }
-                                  </TextField>
-                                </Grid>
+                            </Grid>
+                            <Grid item>
+                            <Grid
+                              spacing={2}
+                              container
+                              justifyContent={"center"}
+                              alignItems={"flex-end"}
+                              direction={"raw"}
+                            >
+                              <Grid item>
+                                <Select
+                                  labelId="InputType"
+                                  id="InputType"
+                                  value={inputType}
+                                  // label="InputType"
+                                  label={"InputType"}
+                                  onChange={(e) => handleInputTypeChange(e)}
+                                >
+                                  <MenuItem value={"PlainText"}>PlainText</MenuItem>
+                                  <MenuItem value={"Ref"}>Ref</MenuItem>
+                                  <MenuItem value={"GetAttr"}>GetAttr</MenuItem>
+                                </Select>
+                                <FormHelperText>Input types</FormHelperText>
                               </Grid>
+                              <Grid item>
+                                <TextField
+                                  autoFocus
+                                  margin="dense"
+                                  id="Value"
+                                  label="Value"
+                                  fullWidth
+                                  type={"text"}
+                                  variant="standard"
+                                  select={inputType !== "PlainText" | r["Type"] === "Boolean"}
+                                  helperText={
+                                    r["Type"]?.startsWith("List") ? "separate values with connma" : ""
+                                  }
+                                  value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Value"] : ""}
+                                  onChange={(e) => handleEditPropChange(r, e, "Value")
+                                    // var newProp = 
+                                    // setPropEditValue({ ...propEditValue, [r["Property"]]: {"Value": e.target.value} })
+                                  }
+                                >
+                                  {
+                                    inputType === "PlainText"
+                                      ?
+                                      ["TRUE", "FALSE"].map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)
+                                      : inputType === "Ref"
+                                        ?
+                                        parameterDefs.map((p) => {
+                                          return (
+                                            <MenuItem key={p["Name"]} value={JSON.stringify({ "Ref": p["Name"] })}>{`${p["Name"]}(Parameter)`}</MenuItem>
+                                          )
+                                        }).concat(
+                                          resourceDefs.map((r) => {
+                                            return (
+                                              <MenuItem key={r["ResourceId"]} value={JSON.stringify({ "Ref": r["ResourceId"] })}>{`${r["ResourceId"]}(${r["ResourceType"]})`}</MenuItem>
+                                            )
+                                          })
+                                        )
+                                        :
+                                        <div></div>
+                                  }
+                                </TextField>
+                              </Grid>
+                            </Grid>
+                            </Grid>
+                            <Grid item>
+                            <Grid
+                              spacing={2}
+                              container
+                              justifyContent={"left"}
+                              alignItems={"flex-end"}
+                              direction={"raw"}
+                            >
+                              <Grid item>
+                                <Select
+                                  labelId="BuilInVariables"
+                                  id="BuilInVariables"
+                                  value={copyText}
+                                  label="BuilInVariables"
+
+                                  onChange={(e) => {
+                                    setCopied(false)
+                                    setCopyText(e.target.value)
+                                  }}
+                                >
+                                  {config.BUILT_IN_VARIABLES.map((v) => {
+                                    return (
+                                      <MenuItem key={v} value={v}>{v}</MenuItem>
+                                    )
+                                  })}
+                                </Select>
+                                <FormHelperText>Snipets and Variables</FormHelperText>
+                              </Grid>
+                              <Grid item>
+                                <CopyToClipboard
+                                  onCopy={(e) => setCopied(true)}
+                                  text={copyText}
+                                >
+                                  <IconButton onClick={() => setCopied(true)}>
+                                  <CopyIcon/>
+                                  </IconButton>
+                                </CopyToClipboard>
+                              </Grid>
+                            </Grid>
+                            </Grid>
+                            </Grid>
                             {/* </div> */}
                           </DialogContent>
                           <DialogActions>
                             <Button onClick={() => {
                               var newPropEditValue = propEditValue
-                              newPropEditValue[r["Property"]] = {"Value": null, "Note": null}
+                              newPropEditValue[r["Property"]] = { "Value": null, "Note": null }
                               setPropEditValue({ ...newPropEditValue })
                               // setPropEditDialogOpen(false)
                             }}>CLEAR</Button>
