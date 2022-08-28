@@ -28,7 +28,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -81,11 +80,11 @@ const repr = (v) => {
 
 export const Parameters = ({
   templateName, projectName,
+  parameterDefs, setParameterDefs,
   selectedTemplate, setSelectedTemplate,
   // selectedTab, setSelectedTab, 
 }) => {
 
-  const [parameterDefs, setParameterDefs] = React.useState([])
   const [parameterFields, setParameterFields] = React.useState({})
   const [parameterTypes, setParameterTypes] = React.useState([])
   const [selectedParameter, setSelectedParameter] = React.useState(null)

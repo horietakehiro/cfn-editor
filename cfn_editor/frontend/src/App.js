@@ -27,7 +27,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -157,6 +156,9 @@ function PersistentDrawerLeft() {
   )
 
   const [selectedTab, setSelectedTab] = React.useState(0);
+
+  const [parameterDefs, setParameterDefs] = React.useState([])
+  const [resourceDefs, setResourceDefs] = React.useState([])
 
   React.useEffect(() => {
     localStorage.setItem("cfn-editor-selectedProjectName", selectedProjectName)
@@ -691,6 +693,8 @@ function PersistentDrawerLeft() {
               templateName={selectedTemplate["Name"]}
               selectedTemplate={selectedTemplate}
               setSelectedTemplate={setSelectedTemplate}
+              parameterDefs={parameterDefs}
+              setParameterDefs={setParameterDefs}
             />
           </TabPanel>
           <TabPanel value={selectedTab} index={1}>
@@ -699,6 +703,9 @@ function PersistentDrawerLeft() {
               templateName={selectedTemplate["Name"]}
               selectedTemplate={selectedTemplate}
               setSelectedTemplate={setSelectedTemplate}
+              parameterDefs={parameterDefs}
+              resourceDefs={resourceDefs}
+              setResourceDefs={setResourceDefs}
             />
           </TabPanel>
           <TabPanel value={selectedTab} index={2}>

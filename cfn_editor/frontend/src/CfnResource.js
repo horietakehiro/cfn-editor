@@ -28,7 +28,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -54,6 +53,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
+import Select from '@mui/material/Select';
 
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
@@ -64,6 +64,17 @@ import Switch from '@mui/material/Switch';
 import { maxWidth } from '@mui/system';
 
 import LoadingButton from '@mui/lab/LoadingButton';
+
+import JSONInput from 'react-json-editor-ajrm';
+import locale from 'react-json-editor-ajrm/locale/jpn';
+// import { JsonEditor as Editor } from 'jsoneditor-react';
+// import 'jsoneditor-react/es/editor.min.css';
+// import Ajv from 'ajv';
+// import 'brace';
+// import 'brace/mode/json';
+// import 'brace/theme/github';
+// const ajv = new Ajv({ allErrors: true, verbose: true });
+
 // import Autocomplete from '@mui/material/Autocomplete';
 
 
@@ -127,11 +138,13 @@ const isChildProp = (curResource, index, allResources) => {
 
 export const Resources = ({
   templateName, projectName,
+  parameterDefs,
+  resourceDefs, setResourceDefs,
   selectedTemplate, setSelectedTemplate,
   // selectedTab, setSelectedTab, 
 }) => {
 
-  const [resourceDefs, setResourceDefs] = React.useState([])
+  // const [resourceDefs, setResourceDefs] = React.useState([])
   const [resourceFields, setResourceFields] = React.useState({})
   const [resourceTypes, setResourceTypes] = React.useState([])
   const [selectedResourceSummary, setSelectedResourceSummary] = React.useState(null)
@@ -142,7 +155,7 @@ export const Resources = ({
   const [selectedPropertySpecs, setSelectedPropertySpecs] = React.useState([])
   const [tmpResourceDetail, setTmpResourceDetail] = React.useState(null)
   const [selectedResourceUrls, setSelectedResourceUrls] = React.useState([])
-  const [newResourceSummary, setNewResourceSummary] = React.useState({"ResourceType": null, "ResourceId": null})
+  const [newResourceSummary, setNewResourceSummary] = React.useState({ "ResourceType": null, "ResourceId": null })
   const [newResourceLoading, setNewResourceLoading] = React.useState(false)
 
   const [cloneResourceDialogOpen, setCloneResourceDialogOpen] = React.useState(false)
@@ -152,6 +165,8 @@ export const Resources = ({
   const [selectedListIndex, setSelectedListIndex] = React.useState(0)
   const [propEditDialogOpen, setPropEditDialogOpen] = React.useState(false)
   const [propEditValue, setPropEditValue] = React.useState({})
+
+  const [inputType, setInputType] = React.useState("PlainText")
 
   React.useEffect(() => {
     var url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/__TYPES__`
@@ -181,7 +196,7 @@ export const Resources = ({
     fetch(url)
       .then(res => res.json())
       .then(body => {
-        // // //// console.log(body)
+        console.log(body)
         setSelectedResourceDetail(body["Resource"])
         setTmpResourceDetail(body["Resource"])
       })
@@ -294,23 +309,28 @@ export const Resources = ({
     }
   }
 
-  const handlePropEditDialogClose = (resource) => {
+  const handlePropEditDialogClose = (resource, submit) => {
     // console.log(resource)
     // console.log(propEditValue)
-    resource["Value"] = propEditValue[resource["Property"]]
-    var newResource = tmpResourceDetail.filter((r) => {
-      return r["Property"] !== resource["Property"]
-    })
-    newResource.push(resource)
-    newResource.sort((a, b) => {
-      if (a["Property"] > b["Property"]) {
-        return 1
-      } else {
-        return -1
-      }
-    })
+    if (submit) {
 
-    setTmpResourceDetail([...newResource])
+      resource["Value"] = propEditValue[resource["Property"]]["Value"]
+      resource["UserNote"] = propEditValue[resource["Property"]]["Note"]
+      var newResource = tmpResourceDetail.filter((r) => {
+        return r["Property"] !== resource["Property"]
+      })
+      newResource.push(resource)
+      newResource.sort((a, b) => {
+        if (a["Property"] > b["Property"]) {
+          return 1
+        } else {
+          return -1
+        }
+      })
+  
+      setTmpResourceDetail([...newResource])
+    }
+
     setSelectedListProps([...selectedListProps.slice(0, selectedListProps.length - 1)])
     setSelectedProperties([...selectedProperties.slice(0, selectedProperties.length - 1)])
     // setSelectedResourceUrls([...selectedResourceUrls.slice(0, selectedResourceUrls.length - 1)])
@@ -346,6 +366,8 @@ export const Resources = ({
 
     // open edit dialog
     if (isPrimitive) {
+      console.log(selectedPropertySpecs)
+      console.log(selectedResourceSpec)
       setPropEditDialogOpen(true)
 
     } else {
@@ -512,7 +534,7 @@ export const Resources = ({
   const handleNewResourceAdd = (type, e) => {
     if (type !== "submit") {
       console.log(e.target.value)
-      setNewResourceSummary({...newResourceSummary, [type]: e.target.value})
+      setNewResourceSummary({ ...newResourceSummary, [type]: e.target.value })
       return
     }
 
@@ -534,30 +556,45 @@ export const Resources = ({
       .then(res => res.json())
       .then(body => {
         console.log(body)
-        var newResource = {...newResourceSummary, "ResourceNote": null}
+        var newResource = { ...newResourceSummary, "ResourceNote": null }
         setResourceDefs([...resourceDefs, newResource])
 
         handleResourceSelected(newResource)
 
-        setNewResourceSummary({"ResourceType": null, "ResourceId": null})
+        setNewResourceSummary({ "ResourceType": null, "ResourceId": null })
       })
       .catch(e => console.error(e))
       .finally(() => setNewResourceLoading(false))
   }
 
   const handleCloneResourceDialogOpen = () => {
-    setCloneResourceId(`${selectedResourceSummary["ResourceId"]}Copy`)
+    setCloneResourceId(`${selectedResourceSummary["ResourceId"]}${Math.random().toString(32).substring(2)}`)
     setCloneResourceDialogOpen(true)
   }
   const handleCloneResourceDialogClose = (submit) => {
     if (submit) {
-      const newResourceSummary = {...tmpResourceSummary, "ResourceId": cloneResourceId}
+      const newResourceSummary = { ...tmpResourceSummary, "ResourceId": cloneResourceId }
       console.log(newResourceSummary)
       setTmpResourceSummary(newResourceSummary)
       handleButtonClick("save", newResourceSummary)
     }
 
     setCloneResourceDialogOpen(false)
+  }
+
+  const handleInputTypeChange = (e) => {
+    console.log(e)
+    setInputType(e.target.value)
+  }
+
+  const handleEditPropChange = (r, e, key) => {
+    var newProp
+    if (propEditValue.hasOwnProperty(r["Property"])) {
+      newProp = {...propEditValue[r["Property"]], [key]: e.target.value}
+    } else {
+      newProp = {...{"Value": null, "Note": null}, [key]: e.target.value}      
+    }
+    setPropEditValue({...propEditValue, [r["Property"]]: newProp})
   }
 
   if (selectedResourceDetail === null) {
@@ -651,14 +688,14 @@ export const Resources = ({
                 id="Type"
                 options={resourceTypes}
                 sx={{ width: 300 }}
-                onChange={(e, value) => handleNewResourceAdd("ResourceType", {target: {value: value}})}
-                
+                onChange={(e, value) => handleNewResourceAdd("ResourceType", { target: { value: value } })}
+
                 // fullWidth={true}
                 renderInput={(params) => <TextField
-                    {...params}
-                    label="Type"
-                    variant='standard'
-                    fullWidth={true}
+                  {...params}
+                  label="Type"
+                  variant='standard'
+                  fullWidth={true}
                 />}
               />
             </Grid>
@@ -727,21 +764,21 @@ export const Resources = ({
               <Button
                 variant={"outlined"}
                 startIcon={<ArrowBackIcon />}
-                onClick={() => handleButtonClick("cancel", null)}
+                onClick={() => handleButtonClick("cancel", tmpResourceSummary)}
               >
                 CANCEL
               </Button>
               <Button
                 variant={"outlined"}
                 startIcon={<DeleteIcon />}
-                onClick={() => handleButtonClick("delete", null)}
+                onClick={() => handleButtonClick("delete", tmpResourceSummary)}
               >
                 DELETE
               </Button>
               <Button
                 variant="contained"
                 startIcon={<SaveIcon />}
-                onClick={() => handleButtonClick("save", null)}
+                onClick={() => handleButtonClick("save", tmpResourceSummary)}
               >
                 SAVE
               </Button>
@@ -772,7 +809,7 @@ export const Resources = ({
                     label="New Resource Id"
                     fullWidth
                     variant="standard"
-                    defaultValue={`${selectedResourceSummary["ResourceId"]}Copy`}
+                    defaultValue={`${selectedResourceSummary["ResourceId"]}${Math.random().toString(32).substring(2)}`}
                     onChange={(e) => setCloneResourceId(e.target.value)}
                   />
                 </div>
@@ -881,31 +918,97 @@ export const Resources = ({
                         </Button>
                         <Dialog
                           open={Boolean(r["Property"] === selectedProperties[selectedProperties.length - 1] & propEditDialogOpen)}
-                          onClose={() => handlePropEditDialogClose(r)}
+                          onClose={() => handlePropEditDialogClose(r, false)}
                         >
                           <DialogTitle>Edit {r["Property"]}'s Value</DialogTitle>
                           <DialogContent>
                             <DialogContentText>
-                              Edit Property Value.
+                              Edit Property.
                             </DialogContentText>
-                            <div style={{ height: 400, width: '100%' }}>
-                              <TextField
-                                autoFocus
-                                margin="dense"
-                                id="Value"
-                                label="Value"
-                                fullWidth
-                                variant="standard"
-                                defaultValue={r["Property"] in propEditValue ? propEditValue[r["Property"]] : null}
-                                onChange={(e) => {
-                                  // const p = r["Property"]
-                                  setPropEditValue({ ...propEditValue, [r["Property"]]: e.target.value })
-                                }}
-                              />
-                            </div>
+                            {/* <div style={{ height: 400, width: '100%' }}> */}
+                            <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    id="Note"
+                                    label="Note"
+                                    fullWidth
+                                    type={"text"}
+                                    variant="standard"
+                                    value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Note"] : ""}
+                                    onChange={(e) => handleEditPropChange(r, e, "Note")}
+                            />
+                              <Grid
+                                spacing={2}
+                                container
+                                justifyContent={"center"}
+                                alignItems={"flex-end"}
+                                direction={"raw"}
+                              >
+                                <Grid item>
+                                  <Select
+                                    labelId="InputType"
+                                    id="InputType"
+                                    value={inputType}
+                                    label="InputType"
+                                    onChange={(e) => handleInputTypeChange(e)}
+                                  >
+                                    <MenuItem value={"PlainText"}>PlainText</MenuItem>
+                                    <MenuItem value={"Ref"}>Ref</MenuItem>
+                                    <MenuItem value={"GetAttr"}>GetAttr</MenuItem>
+                                  </Select>
+                                </Grid>
+                                <Grid item>
+                                  <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    id="Value"
+                                    label="Value"
+                                    fullWidth
+                                    type={"text"}
+                                    variant="standard"
+                                    select={inputType !== "PlainText" | r["Type"] === "Boolean"}
+                                    helperText={
+                                      r["Type"].startsWith("List") ? "separate values with connma" : ""
+                                    }
+                                    value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Value"] : ""}
+                                    onChange={(e) => handleEditPropChange(r, e, "Value")
+                                      // var newProp = 
+                                      // setPropEditValue({ ...propEditValue, [r["Property"]]: {"Value": e.target.value} })
+                                    }
+                                  >
+                                    {
+                                      inputType === "PlainText"
+                                        ?
+                                        ["TRUE", "FALSE"].map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)
+                                        : inputType === "Ref"
+                                          ?
+                                          parameterDefs.map((p) => {
+                                            return (
+                                              <MenuItem key={p["Name"]} value={JSON.stringify({ "Ref": p["Name"] })}>{`${p["Name"]}(Parameter)`}</MenuItem>
+                                            )
+                                          }).concat(
+                                            resourceDefs.map((r) => {
+                                              return (
+                                                <MenuItem key={r["ResourceId"]} value={JSON.stringify({ "Ref": r["ResourceId"] })}>{`${r["ResourceId"]}(${r["ResourceType"]})`}</MenuItem>
+                                              )
+                                            })
+                                          )
+                                          :
+                                          <div></div>
+                                    }
+                                  </TextField>
+                                </Grid>
+                              </Grid>
+                            {/* </div> */}
                           </DialogContent>
                           <DialogActions>
-                            <Button onClick={() => handlePropEditDialogClose(r)}>OK</Button>
+                            <Button onClick={() => {
+                              var newPropEditValue = propEditValue
+                              newPropEditValue[r["Property"]] = {"Value": null, "Note": null}
+                              setPropEditValue({ ...newPropEditValue })
+                              // setPropEditDialogOpen(false)
+                            }}>CLEAR</Button>
+                            <Button onClick={() => handlePropEditDialogClose(r, true)}>OK</Button>
                           </DialogActions>
                         </Dialog>
 

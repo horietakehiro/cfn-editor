@@ -242,9 +242,11 @@ def resource(request:HttpRequest, project_name:str, template_name:str, resource_
         if "::" not in  resource_name:
             df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
             df = df[df["ResourceId"] == resource_name]
-            
+
             resource = sorted(df.to_dict(orient="records"), key=lambda r: r["Property"])
-            return JsonResponse({"Resource": resource})
+            res = {"Resource": resource}
+            print(json.dumps(res, indent=2))
+            return JsonResponse(res)
 
     if request.method == "POST":
         body = json.loads(request.body)
