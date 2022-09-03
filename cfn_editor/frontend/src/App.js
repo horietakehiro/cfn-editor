@@ -39,7 +39,8 @@ import PropTypes from 'prop-types';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import { Parameters } from './CfnParameter';
-import { Resources } from "./CfnResource"
+import { Resources } from "./CfnResource";
+import { Outputs } from "./CfnOutputs";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -53,7 +54,7 @@ function TabPanel(props) {
       {...other}
     >
       {value === index && (
-          <div>{children}</div>
+        <div>{children}</div>
       )}
     </div>
   );
@@ -144,21 +145,23 @@ function PersistentDrawerLeft() {
   const [existedProjectNames, setExistedProjectNames] = React.useState([])
   const [selectedProjectName, setSelectedProjectName] = React.useState(
     localStorage.getItem("cfn-editor-selectedProjectName") !== null ?
-    localStorage.getItem("cfn-editor-selectedProjectName") : ""
+      localStorage.getItem("cfn-editor-selectedProjectName") : ""
   )
 
-  const [tmpTemplate, setTmpTemplate] = React.useState({"Name": "", "File": null})
+  const [tmpTemplate, setTmpTemplate] = React.useState({ "Name": "", "File": null })
   const [tmpTemplateError, setTmpTemplateError] = React.useState(false)
   const [existedTemplateNames, setExistedTemplateNames] = React.useState([])
   const [selectedTemplate, setSelectedTemplate] = React.useState(
     localStorage.getItem("cfn-editor-selectedTemplate") !== null ?
-    JSON.parse(localStorage.getItem("cfn-editor-selectedTemplate")) : {"Name": "", "Body": null}
+      JSON.parse(localStorage.getItem("cfn-editor-selectedTemplate")) : { "Name": "", "Body": null }
   )
 
   const [selectedTab, setSelectedTab] = React.useState(0);
 
   const [parameterDefs, setParameterDefs] = React.useState([])
   const [resourceDefs, setResourceDefs] = React.useState([])
+  const [attributeDefs, setAttributeDefs] = React.useState({})
+  const [outputDefs, setOutputDefs] = React.useState([])
 
   React.useEffect(() => {
     localStorage.setItem("cfn-editor-selectedProjectName", selectedProjectName)
@@ -171,6 +174,37 @@ function PersistentDrawerLeft() {
   }, [selectedTemplate])
 
 
+  React.useEffect(() => {
+    // parameters
+    var url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/parameter`
+    fetch(url)
+      .then(res => res.json())
+      .then(body => {
+        const newParameterDef = [...body["Parameters"]]
+        setParameterDefs(newParameterDef)
+      })
+
+    // resources
+    url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/resource`
+    fetch(url)
+      .then(res => res.json())
+      .then(body => {
+        const newResourceDef = [...body["Resources"]]
+        setResourceDefs(newResourceDef)
+      })
+
+    // outputs
+    url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/output`
+    fetch(url)
+      .then(res => res.json())
+      .then(body => {
+        const newOutputDefs = [...body["Outputs"]]
+        setOutputDefs(newOutputDefs)
+      })
+
+  }, [selectedTemplate])
+
+
   const handleTabChange = (e, newTab) => {
     setSelectedTab(newTab);
   };
@@ -179,7 +213,7 @@ function PersistentDrawerLeft() {
     setTmpProjectName(e.target.value)
   }
   const handletmpTemplate = (nameEvent, fileEvent) => {
-    var newTemplate = {"Name": tmpTemplate["Name"], "File": tmpTemplate["File"]}
+    var newTemplate = { "Name": tmpTemplate["Name"], "File": tmpTemplate["File"] }
     if (nameEvent !== null) {
       newTemplate["Name"] = nameEvent.target.value
       newTemplate["File"] = null
@@ -210,14 +244,14 @@ function PersistentDrawerLeft() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({"Name": tmpProjectName}),
+        body: JSON.stringify({ "Name": tmpProjectName }),
       }
       fetch(url, option)
-      .then(res => res.json())
-      .then((body) => {
-        setSelectedProjectName(body["Name"])
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then((body) => {
+          setSelectedProjectName(body["Name"])
+        })
+        .catch(e => console.error(e))
     }
     setTmpProjectNameError(false)
     setNewProjectDialogOpen(false);
@@ -228,12 +262,12 @@ function PersistentDrawerLeft() {
   const handleOpenProjectDialogOpen = () => {
     const url = config.BASE_API_URL + "project"
     fetch(url)
-    .then(res => res.json())
-    .then(body => {
-      console.log(body)
-      setExistedProjectNames(body["Projects"].map(project => project["Name"]))
-    })
-    .catch(e => console.error(e))
+      .then(res => res.json())
+      .then(body => {
+        console.log(body)
+        setExistedProjectNames(body["Projects"].map(project => project["Name"]))
+      })
+      .catch(e => console.error(e))
     setOpenProjectDialogOpen(true);
   }
   const handleOpenProjectDialogClose = (submit) => {
@@ -246,12 +280,12 @@ function PersistentDrawerLeft() {
   const handleDeleteProjectDialogOpen = () => {
     const url = config.BASE_API_URL + "project"
     fetch(url)
-    .then(res => res.json())
-    .then(body => {
-      console.log(body)
-      setExistedProjectNames(body["Projects"].map(project => project["Name"]))
-    })
-    .catch(e => console.error(e))
+      .then(res => res.json())
+      .then(body => {
+        console.log(body)
+        setExistedProjectNames(body["Projects"].map(project => project["Name"]))
+      })
+      .catch(e => console.error(e))
     setDeleteProjectDialogOpen(true);
   }
   const handleDeleteProjectDialogClose = (submit) => {
@@ -267,17 +301,17 @@ function PersistentDrawerLeft() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({"Name": tmpProjectName}),
+        body: JSON.stringify({ "Name": tmpProjectName }),
       }
       fetch(url, option)
-      .then(res => res.json())
-      .then((body) => {
-        console.log(body)
-        if (body["Name"] === selectedProjectName) {
-          setSelectedProjectName("")
-        } 
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then((body) => {
+          console.log(body)
+          if (body["Name"] === selectedProjectName) {
+            setSelectedProjectName("")
+          }
+        })
+        .catch(e => console.error(e))
     }
 
     setDeleteProjectDialogOpen(false);
@@ -318,12 +352,12 @@ function PersistentDrawerLeft() {
       }
 
       fetch(url, option)
-      .then(res => res.json())
-      .then((body) => {
-        setSelectedTemplate(body)
-        console.log(body)
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then((body) => {
+          setSelectedTemplate(body)
+          console.log(body)
+        })
+        .catch(e => console.error(e))
     }
     setNewTemplateDialogOpen(false);
   };
@@ -331,12 +365,12 @@ function PersistentDrawerLeft() {
   const handleOpenTemplateDialogOpen = () => {
     const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
     fetch(url)
-    .then(res => res.json())
-    .then(body => {
-      console.log(body)
-      setExistedTemplateNames(body["Templates"].map(template => template["Name"]))
-    })
-    .catch(e => console.error(e))
+      .then(res => res.json())
+      .then(body => {
+        console.log(body)
+        setExistedTemplateNames(body["Templates"].map(template => template["Name"]))
+      })
+      .catch(e => console.error(e))
 
     setOpenTemplateDialogOpen(true);
   }
@@ -345,11 +379,11 @@ function PersistentDrawerLeft() {
     if (submit === true) {
       const url = config.BASE_API_URL + `project/${selectedProjectName}/template/${tmpTemplate["Name"]}`
       fetch(url)
-      .then(res => res.json())
-      .then(body => {
-        setSelectedTemplate(body)
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then(body => {
+          setSelectedTemplate(body)
+        })
+        .catch(e => console.error(e))
     }
 
     setOpenTemplateDialogOpen(false);
@@ -358,33 +392,33 @@ function PersistentDrawerLeft() {
   const handleDeleteTemplateDialogOpen = () => {
     const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
     fetch(url)
-    .then(res => res.json())
-    .then(body => {
-      console.log(body)
-      setExistedTemplateNames(body["Templates"].map(template => template["Name"]))
-    })
-    .catch(e => console.error(e))
+      .then(res => res.json())
+      .then(body => {
+        console.log(body)
+        setExistedTemplateNames(body["Templates"].map(template => template["Name"]))
+      })
+      .catch(e => console.error(e))
 
     setDeleteTemplateDialogOpen(true);
   }
   const handleDeleteTemplateDialogClose = (submit) => {
     if (submit === true) {
-      const url = config.BASE_API_URL +`project/${selectedProjectName}/template`
+      const url = config.BASE_API_URL + `project/${selectedProjectName}/template`
       const option = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({"Name": tmpTemplate["Name"]}),
+        body: JSON.stringify({ "Name": tmpTemplate["Name"] }),
       }
       fetch(url, option)
-      .then(res => res.json())
-      .then(body => {
-        if (body["Name"] === selectedTemplate["Name"]) {
-          setSelectedTemplate({"Name": "", "Body": null})
-        }
-      })
-      .catch(e => console.error(e))
+        .then(res => res.json())
+        .then(body => {
+          if (body["Name"] === selectedTemplate["Name"]) {
+            setSelectedTemplate({ "Name": "", "Body": null })
+          }
+        })
+        .catch(e => console.error(e))
     }
 
     setDeleteTemplateDialogOpen(false);
@@ -408,7 +442,7 @@ function PersistentDrawerLeft() {
           <Typography variant="h6" noWrap component="div">
             cfn-editor {
               selectedProjectName !== "" ? ` > ${selectedProjectName}` : ""
-            } {selectedTemplate["Name"] !== "" ? ` > ${selectedTemplate["Name"]}` : ""} 
+            } {selectedTemplate["Name"] !== "" ? ` > ${selectedTemplate["Name"]}` : ""}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -433,248 +467,248 @@ function PersistentDrawerLeft() {
         {/* <Divider/> */}
         <List>
           <Divider component="li" />
-            <li>
-              <Typography
-                sx={{ mt: 0.5, ml: 2 }}
-                // color="text.secondary"
-                display="block"
-                // variant="caption"
-              >
-                Projects
-              </Typography>
-            </li>
-            <ListItem key="NewProject" disablePadding>
-              <ListItemButton onClick={handleNewProjectDialogOpen}>
-                <ListItemIcon>
-                  <AddIcon/>
-                </ListItemIcon>
-                <ListItemText primary="New" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key="OpenProject" disablePadding>
-              <ListItemButton onClick={handleOpenProjectDialogOpen}>
-                <ListItemIcon>
-                  <FileOpenIcon/>
-                </ListItemIcon>
-                <ListItemText primary="Open" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key="DeleteProject" disablePadding>
-              <ListItemButton onClick={handleDeleteProjectDialogOpen}>
-                <ListItemIcon>
-                  <DeleteIcon/>
-                </ListItemIcon>
-                <ListItemText primary="Delete" />
-              </ListItemButton>
-            </ListItem>
+          <li>
+            <Typography
+              sx={{ mt: 0.5, ml: 2 }}
+              // color="text.secondary"
+              display="block"
+            // variant="caption"
+            >
+              Projects
+            </Typography>
+          </li>
+          <ListItem key="NewProject" disablePadding>
+            <ListItemButton onClick={handleNewProjectDialogOpen}>
+              <ListItemIcon>
+                <AddIcon />
+              </ListItemIcon>
+              <ListItemText primary="New" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key="OpenProject" disablePadding>
+            <ListItemButton onClick={handleOpenProjectDialogOpen}>
+              <ListItemIcon>
+                <FileOpenIcon />
+              </ListItemIcon>
+              <ListItemText primary="Open" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key="DeleteProject" disablePadding>
+            <ListItemButton onClick={handleDeleteProjectDialogOpen}>
+              <ListItemIcon>
+                <DeleteIcon />
+              </ListItemIcon>
+              <ListItemText primary="Delete" />
+            </ListItemButton>
+          </ListItem>
         </List>
         <List>
           <Divider component="li" />
-            <li>
-              <Typography
-                sx={{ mt: 0.5, ml: 2 }}
-                // color="text.secondary"
-                display="block"
-                // variant="caption"
-              >
-                Templates
-              </Typography>
-            </li>
-            <ListItem key="NewTemplate" disablePadding>
-              <ListItemButton onClick={handleNewTemplateDialogOpen}>
-                <ListItemIcon>
-                  <AddIcon/>
-                </ListItemIcon>
-                <ListItemText primary="New" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key="OpenTemplate" disablePadding>
-              <ListItemButton onClick={handleOpenTemplateDialogOpen}>
-                <ListItemIcon>
-                  <FileOpenIcon/>
-                </ListItemIcon>
-                <ListItemText primary="Open" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key="DeleteTemplate" disablePadding>
-              <ListItemButton onClick={handleDeleteTemplateDialogOpen}>
-                <ListItemIcon>
-                  <DeleteIcon/>
-                </ListItemIcon>
-                <ListItemText primary="Delete" />
-              </ListItemButton>
-            </ListItem>
+          <li>
+            <Typography
+              sx={{ mt: 0.5, ml: 2 }}
+              // color="text.secondary"
+              display="block"
+            // variant="caption"
+            >
+              Templates
+            </Typography>
+          </li>
+          <ListItem key="NewTemplate" disablePadding>
+            <ListItemButton onClick={handleNewTemplateDialogOpen}>
+              <ListItemIcon>
+                <AddIcon />
+              </ListItemIcon>
+              <ListItemText primary="New" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key="OpenTemplate" disablePadding>
+            <ListItemButton onClick={handleOpenTemplateDialogOpen}>
+              <ListItemIcon>
+                <FileOpenIcon />
+              </ListItemIcon>
+              <ListItemText primary="Open" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key="DeleteTemplate" disablePadding>
+            <ListItemButton onClick={handleDeleteTemplateDialogOpen}>
+              <ListItemIcon>
+                <DeleteIcon />
+              </ListItemIcon>
+              <ListItemText primary="Delete" />
+            </ListItemButton>
+          </ListItem>
         </List>
         <Divider />
-          <Dialog open={newProjectDialogOpen} onClose={() => handleNewProjectDialogClose(false)}>
-            <DialogTitle>Create New Projects</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Create new project.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                  error={tmpProjectNameError}
-                  autoFocus
-                  margin="dense"
-                  id="ProjectName"
-                  label="Project Name"
-                  // type="email"
-                  fullWidth
-                  variant="standard"
-                  onChange={(e) => handleTmpProjectName(e)}
-                />
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleNewProjectDialogClose(true)}>New</Button>
-            </DialogActions>
-          </Dialog>
-          <Dialog open={openProjectDialogOpen} onClose={() => handleOpenProjectDialogClose(false)}>
-            <DialogTitle>Open Existed Project</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Open existed project.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    id="ProjectName"
-                    label="Project Name"
-                    // type="email"
-                    fullWidth
-                    variant="standard"
-                    select
-                    onChange={(e) => handleTmpProjectName(e)}
-                  >
-                    {existedProjectNames.map((name, i) => {
-                      return <MenuItem key={i} value={name}>{name}</MenuItem>
-                    })}
-                </TextField>
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleOpenProjectDialogClose(true)}>Open</Button>
-            </DialogActions>
-          </Dialog>
-          <Dialog open={deleteProjectDialogOpen} onClose={() => handleDeleteProjectDialogClose(false)}>
-            <DialogTitle>Delete Existed Project</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Delete existed project.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    id="ProjectName"
-                    label="Project Name"
-                    // type="email"
-                    fullWidth
-                    variant="standard"
-                    select
-                    onChange={(e) => handleTmpProjectName(e)}
-                    >
-                    {existedProjectNames.map((name, i) => {
-                      return <MenuItem key={i} value={name}>{name}</MenuItem>
-                    })}
-                </TextField>
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleDeleteProjectDialogClose(true)}>Delete</Button>
-            </DialogActions>
-          </Dialog>
+        <Dialog open={newProjectDialogOpen} onClose={() => handleNewProjectDialogClose(false)}>
+          <DialogTitle>Create New Projects</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Create new project.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                error={tmpProjectNameError}
+                autoFocus
+                margin="dense"
+                id="ProjectName"
+                label="Project Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                onChange={(e) => handleTmpProjectName(e)}
+              />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleNewProjectDialogClose(true)}>New</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={openProjectDialogOpen} onClose={() => handleOpenProjectDialogClose(false)}>
+          <DialogTitle>Open Existed Project</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Open existed project.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="ProjectName"
+                label="Project Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                select
+                onChange={(e) => handleTmpProjectName(e)}
+              >
+                {existedProjectNames.map((name, i) => {
+                  return <MenuItem key={i} value={name}>{name}</MenuItem>
+                })}
+              </TextField>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleOpenProjectDialogClose(true)}>Open</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={deleteProjectDialogOpen} onClose={() => handleDeleteProjectDialogClose(false)}>
+          <DialogTitle>Delete Existed Project</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Delete existed project.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="ProjectName"
+                label="Project Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                select
+                onChange={(e) => handleTmpProjectName(e)}
+              >
+                {existedProjectNames.map((name, i) => {
+                  return <MenuItem key={i} value={name}>{name}</MenuItem>
+                })}
+              </TextField>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleDeleteProjectDialogClose(true)}>Delete</Button>
+          </DialogActions>
+        </Dialog>
 
-          <Dialog open={newTemplateDialogOpen} onClose={() => handleNewTemplateDialogClose(false)}>
-            <DialogTitle>Create New Template</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Create new template.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                  autoFocus
-                  margin="dense"
-                  id="TemplateName"
-                  label="Template Name"
-                  // type="email"
-                  fullWidth
-                  variant="standard"
-                  value={tmpTemplate["Name"]}
-                  onChange={(e) => handletmpTemplate(e, null)}
-                />
-                <Button
-                  variant="contained"
-                  component="label"
-                  onChange={(e) => handletmpTemplate(null, e)}>
-                  IMPORT
-                  <input hidden accept=".json,.yaml" multiple type="file" />
-                </Button>
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleNewTemplateDialogClose(true)}>New</Button>
-            </DialogActions>
-          </Dialog>
-          <Dialog open={openTemplateDialogOpen} onClose={() => handleOpenTemplateDialogClose(false)}>
-            <DialogTitle>Open Existed Template</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Open existed template.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                    error={tmpTemplateError}
-                    autoFocus
-                    margin="dense"
-                    id="TemplateName"
-                    label="Template Name"
-                    // type="email"
-                    fullWidth
-                    variant="standard"
-                    select
-                    onChange={(e) => handletmpTemplate(e, null)}
-                  >
-                    {existedTemplateNames.map((template, i) => {
-                      return <MenuItem key={i} value={template}>{template}</MenuItem>
-                    })}
-                </TextField>
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleOpenTemplateDialogClose(true)}>Open</Button>
-            </DialogActions>
-          </Dialog>
-          <Dialog open={deleteTemplateDialogOpen} onClose={() => handleDeleteTemplateDialogClose(false)}>
-            <DialogTitle>Delete Existed Template</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Delete existed template.
-              </DialogContentText>
-              <div style={{ height: 400, width: '100%' }}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    id="TemplateName"
-                    label="Template Name"
-                    // type="email"
-                    fullWidth
-                    variant="standard"
-                    select
-                    onChange={(e) => handletmpTemplate(e, null)}
-                  >
-                    {existedTemplateNames.map((template, i) => {
-                      return <MenuItem key={i} value={template}>{template}</MenuItem>
-                    })}
-                </TextField>
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => handleDeleteTemplateDialogClose(true)}>Delete</Button>
-            </DialogActions>
-          </Dialog>
+        <Dialog open={newTemplateDialogOpen} onClose={() => handleNewTemplateDialogClose(false)}>
+          <DialogTitle>Create New Template</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Create new template.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="TemplateName"
+                label="Template Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                value={tmpTemplate["Name"]}
+                onChange={(e) => handletmpTemplate(e, null)}
+              />
+              <Button
+                variant="contained"
+                component="label"
+                onChange={(e) => handletmpTemplate(null, e)}>
+                IMPORT
+                <input hidden accept=".json,.yaml" multiple type="file" />
+              </Button>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleNewTemplateDialogClose(true)}>New</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={openTemplateDialogOpen} onClose={() => handleOpenTemplateDialogClose(false)}>
+          <DialogTitle>Open Existed Template</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Open existed template.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                error={tmpTemplateError}
+                autoFocus
+                margin="dense"
+                id="TemplateName"
+                label="Template Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                select
+                onChange={(e) => handletmpTemplate(e, null)}
+              >
+                {existedTemplateNames.map((template, i) => {
+                  return <MenuItem key={i} value={template}>{template}</MenuItem>
+                })}
+              </TextField>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleOpenTemplateDialogClose(true)}>Open</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={deleteTemplateDialogOpen} onClose={() => handleDeleteTemplateDialogClose(false)}>
+          <DialogTitle>Delete Existed Template</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Delete existed template.
+            </DialogContentText>
+            <div style={{ height: 400, width: '100%' }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="TemplateName"
+                label="Template Name"
+                // type="email"
+                fullWidth
+                variant="standard"
+                select
+                onChange={(e) => handletmpTemplate(e, null)}
+              >
+                {existedTemplateNames.map((template, i) => {
+                  return <MenuItem key={i} value={template}>{template}</MenuItem>
+                })}
+              </TextField>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleDeleteTemplateDialogClose(true)}>Delete</Button>
+          </DialogActions>
+        </Dialog>
 
       </Drawer>
       <Main open={drawerOpen}>
@@ -684,7 +718,7 @@ function PersistentDrawerLeft() {
             <Tabs value={selectedTab} onChange={handleTabChange} aria-label="basic tabs example">
               <Tab label="Parameters" {...a11yProps(0)} />
               <Tab label="Resources" {...a11yProps(1)} />
-              <Tab label="Item Three" {...a11yProps(2)} />
+              <Tab label="Outputs" {...a11yProps(2)} />
             </Tabs>
           </Box>
           <TabPanel value={selectedTab} index={0}>
@@ -706,10 +740,25 @@ function PersistentDrawerLeft() {
               parameterDefs={parameterDefs}
               resourceDefs={resourceDefs}
               setResourceDefs={setResourceDefs}
+              attributeDefs={attributeDefs}
+              setAttributeDefs={setAttributeDefs}
             />
           </TabPanel>
           <TabPanel value={selectedTab} index={2}>
-            Item Three
+            <Outputs
+              projectName={selectedProjectName}
+              templateName={selectedTemplate["Name"]}
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+              parameterDefs={parameterDefs}
+              resourceDefs={resourceDefs}
+              setResourceDefs={setResourceDefs}
+              outputDefs={outputDefs}
+              setOutputDefs={setOutputDefs}
+              attributeDefs={attributeDefs}
+              setAttributeDefs={setAttributeDefs}
+
+            />
           </TabPanel>
         </Box>
       </Main>
@@ -721,7 +770,7 @@ function PersistentDrawerLeft() {
 function App() {
   return (
     <div className="App">
-      <PersistentDrawerLeft/>
+      <PersistentDrawerLeft />
     </div>
   );
 }

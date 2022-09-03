@@ -213,8 +213,11 @@ def resource(request:HttpRequest, project_name:str, template_name:str, resource_
         if resource_name is None:
 
             df = target_template.to_df(target_template.resources, "Resources_Property_Detail")
-            df = target_template.summarise_resources(df)
-            resources = df.to_dict(orient="records")
+            if len(df):
+                df = target_template.summarise_resources(df)
+                resources = df.to_dict(orient="records")
+            else:
+                resources = {}
             print(json.dumps(resources, indent=2))
             return JsonResponse({"Resources": resources})
 
@@ -295,3 +298,56 @@ def resource(request:HttpRequest, project_name:str, template_name:str, resource_
         resources = df.to_dict(orient="records")
         print(json.dumps(resources, indent=2))
         return JsonResponse({"Resources": resources})
+
+
+
+@csrf_exempt
+def output(request:HttpRequest, project_name:str, template_name:str, output_name:str=None):
+    target_template = load_template(project_name, template_name)
+
+    if request.method == "POST":
+        if output_name is None:
+            # update template with new output
+            outputs = json.loads(request.body)["Outputs"]
+            print(json.dumps(outputs, indent=2))
+            new_body = deepcopy(target_template.body)
+            print(json.dumps(new_body, indent=2))
+            new_body["Outputs"] = outputs
+            print(json.dumps(new_body, indent=2))
+
+            target_template = save_template(project_name, template_name, new_body)
+            df = target_template.to_df(target_template.outputs, "Outputs")
+            outputs = df.to_dict(orient="records")
+            print(outputs)
+            return JsonResponse({"Outputs": outputs})
+
+
+    if request.method == "GET":
+        if output_name is not None:
+            if output_name == "__FIELDS__":
+                fileds = cfn_spec.CfnOutput().get_definition()
+                return JsonResponse({"Fields": fileds})
+            if output_name == "__URL__":
+                url = cfn_spec.CfnOutput().get_document_url()
+                return JsonResponse({"Url": url})
+
+        if output_name is None:
+            df = target_template.to_df(target_template.outputs, "Outputs")
+            outputs = df.to_dict(orient="records")
+            print(outputs)
+            return JsonResponse({"Outputs": outputs})
+        
+        o = filter(lambda o: o.id == output_name, target_template.outputs)
+        df = target_template.to_df(list(o), "Outputs")
+        return JsonResponse({"Outputs": df.to_dict(orient="records")})
+
+
+@csrf_exempt
+def attributes(request:HttpRequest, project_name:str, template_name:str, resource_name:str, attribute_name:str=None):
+    target_template = load_template(project_name, template_name)
+
+    if request.method == "GET":
+        if attribute_name == "__ATTRIBUTE__":
+            attributes = spec.get_attribute_spec(resource_name)
+            return JsonResponse({"Attributes": {resource_name : list(attributes.keys())}})
+

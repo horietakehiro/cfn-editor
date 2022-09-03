@@ -122,13 +122,13 @@ export const Parameters = ({
       })
       .catch(e => console.error(e))
 
-    url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/parameter`
-    fetch(url)
-      .then(res => res.json())
-      .then(body => {
-        const newParameterDef = [...body["Parameters"]]
-        setParameterDefs(newParameterDef)
-      })
+    // url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/parameter`
+    // fetch(url)
+    //   .then(res => res.json())
+    //   .then(body => {
+    //     const newParameterDef = [...body["Parameters"]]
+    //     setParameterDefs(newParameterDef)
+    //   })
   }, [])
 
 

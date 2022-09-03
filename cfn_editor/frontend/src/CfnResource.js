@@ -143,6 +143,8 @@ export const Resources = ({
   templateName, projectName,
   parameterDefs,
   resourceDefs, setResourceDefs,
+  attributeDefs, setAttributeDefs,
+
   selectedTemplate, setSelectedTemplate,
   // selectedTab, setSelectedTab, 
 }) => {
@@ -185,15 +187,38 @@ export const Resources = ({
       .catch(e => console.error(e))
 
 
-    url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
-    fetch(url)
-      .then(res => res.json())
-      .then(body => {
-        const newResourceDef = [...body["Resources"]]
-        setResourceDefs(newResourceDef)
-      })
+    // url = config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource`
+    // fetch(url)
+    //   .then(res => res.json())
+    //   .then(body => {
+    //     const newResourceDef = [...body["Resources"]]
+    //     setResourceDefs(newResourceDef)
+    //   })
   }, [])
 
+  React.useEffect(() => {
+    var resourceTypes = new Set(resourceDefs.map((r) => r["ResourceType"]))
+    resourceTypes = Array.from(resourceTypes)
+    // console.log(resourceTypes)
+    var promises = resourceTypes.map((type) => fetch(
+      config.BASE_API_URL + `project/${projectName}/template/${templateName}/resource/${type}/__ATTRIBUTE__`
+    ))
+    Promise.all(promises)
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(attributes => {
+      console.log(attributes)
+      var newAttributeDefs = {}
+      for (var a of attributes) {
+        var key = Object.keys(a["Attributes"])[0]
+        newAttributeDefs[key] = a["Attributes"][key]
+      }
+      console.log(newAttributeDefs)
+      setAttributeDefs({attributeDefs, ...newAttributeDefs})
+    })
+    .catch(e => console.error)
+
+
+  }, [resourceDefs])
 
   const handleResourceSelected = (resource) => {
     setSelectedResourceSummary({ ...resource })
@@ -938,125 +963,137 @@ export const Resources = ({
                               alignItems={"flex-start"}
                               direction={"column"}
                             >
-                            <Grid item>
-                            <TextField
-                              autoFocus
-                              margin="dense"
-                              id="Note"
-                              label="Note"
-                              fullWidth
-                              type={"text"}
-                              variant="standard"
-                              value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Note"] : ""}
-                              onChange={(e) => handleEditPropChange(r, e, "Note")}
-                            />
-                            </Grid>
-                            <Grid item>
-                            <Grid
-                              spacing={2}
-                              container
-                              justifyContent={"center"}
-                              alignItems={"flex-end"}
-                              direction={"raw"}
-                            >
-                              <Grid item>
-                                <Select
-                                  labelId="InputType"
-                                  id="InputType"
-                                  value={inputType}
-                                  // label="InputType"
-                                  label={"InputType"}
-                                  onChange={(e) => handleInputTypeChange(e)}
-                                >
-                                  <MenuItem value={"PlainText"}>PlainText</MenuItem>
-                                  <MenuItem value={"Ref"}>Ref</MenuItem>
-                                  <MenuItem value={"GetAttr"}>GetAttr</MenuItem>
-                                </Select>
-                                <FormHelperText>Input types</FormHelperText>
-                              </Grid>
                               <Grid item>
                                 <TextField
                                   autoFocus
                                   margin="dense"
-                                  id="Value"
-                                  label="Value"
+                                  id="Note"
+                                  label="Note"
                                   fullWidth
                                   type={"text"}
                                   variant="standard"
-                                  select={inputType !== "PlainText" | r["Type"] === "Boolean"}
-                                  helperText={
-                                    r["Type"]?.startsWith("List") ? "separate values with connma" : ""
-                                  }
-                                  value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Value"] : ""}
-                                  onChange={(e) => handleEditPropChange(r, e, "Value")
-                                    // var newProp = 
-                                    // setPropEditValue({ ...propEditValue, [r["Property"]]: {"Value": e.target.value} })
-                                  }
+                                  value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Note"] : ""}
+                                  onChange={(e) => handleEditPropChange(r, e, "Note")}
+                                />
+                              </Grid>
+                              <Grid item>
+                                <Grid
+                                  spacing={2}
+                                  container
+                                  justifyContent={"center"}
+                                  alignItems={"flex-end"}
+                                  direction={"raw"}
                                 >
-                                  {
-                                    inputType === "PlainText"
-                                      ?
-                                      ["TRUE", "FALSE"].map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)
-                                      : inputType === "Ref"
-                                        ?
-                                        parameterDefs.map((p) => {
-                                          return (
-                                            <MenuItem key={p["Name"]} value={JSON.stringify({ "Ref": p["Name"] })}>{`${p["Name"]}(Parameter)`}</MenuItem>
-                                          )
-                                        }).concat(
-                                          resourceDefs.map((r) => {
-                                            return (
-                                              <MenuItem key={r["ResourceId"]} value={JSON.stringify({ "Ref": r["ResourceId"] })}>{`${r["ResourceId"]}(${r["ResourceType"]})`}</MenuItem>
+                                  <Grid item>
+                                    <Select
+                                      labelId="InputType"
+                                      id="InputType"
+                                      value={inputType}
+                                      // label="InputType"
+                                      label={"InputType"}
+                                      onChange={(e) => handleInputTypeChange(e)}
+                                    >
+                                      <MenuItem value={"PlainText"}>PlainText</MenuItem>
+                                      <MenuItem value={"Ref"}>Ref</MenuItem>
+                                      <MenuItem value={"GetAttr"}>GetAttr</MenuItem>
+                                    </Select>
+                                    <FormHelperText>Input types</FormHelperText>
+                                  </Grid>
+                                  <Grid item>
+                                    <TextField
+                                      autoFocus
+                                      margin="dense"
+                                      id="Value"
+                                      label="Value"
+                                      fullWidth
+                                      type={"text"}
+                                      variant="standard"
+                                      select={inputType !== "PlainText" | r["Type"] === "Boolean"}
+                                      helperText={
+                                        r["Type"]?.startsWith("List") ? "separate values with connma" : ""
+                                      }
+                                      value={r["Property"] in propEditValue ? propEditValue[r["Property"]]["Value"] : ""}
+                                      onChange={(e) => handleEditPropChange(r, e, "Value")
+                                        // var newProp = 
+                                        // setPropEditValue({ ...propEditValue, [r["Property"]]: {"Value": e.target.value} })
+                                      }
+                                    >
+                                      {
+                                        inputType === "PlainText"
+                                          ?
+                                          ["TRUE", "FALSE"].map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)
+                                          : inputType === "Ref"
+                                            ?
+                                            parameterDefs.map((p) => {
+                                              return (
+                                                <MenuItem key={p["Name"]} value={JSON.stringify({ "Ref": p["Name"] })}>{`${p["Name"]}(Parameter)`}</MenuItem>
+                                              )
+                                            }).concat(
+                                              resourceDefs.map((r) => {
+                                                return (
+                                                  <MenuItem key={r["ResourceId"]} value={JSON.stringify({ "Ref": r["ResourceId"] })}>{`${r["ResourceId"]}(${r["ResourceType"]})`}</MenuItem>
+                                                )
+                                              })
                                             )
-                                          })
-                                        )
-                                        :
-                                        <div></div>
-                                  }
-                                </TextField>
+                                            : inputType === "GetAttr"
+                                              ?
+                                              resourceDefs.map((r) => {
+                                                return attributeDefs[r["ResourceType"]]?.map((a) => {
+                                                  return (
+                                                    // { "Fn::GetAtt" : [ "logicalNameOfResource", "attributeName" ] }
+                                                    <MenuItem
+                                                      key={r["ResourceId"]}
+                                                      value={JSON.stringify({ "Fn::GetAtt": [r["ResourceId"], a] })}>{`${r["ResourceId"]}.${a}(${r["ResourceType"]})`}
+                                                    </MenuItem>
+                                                  )
+                                                })
+                                              })
+                                              : <div></div>
+                                      }
+                                    </TextField>
+                                  </Grid>
+                                </Grid>
                               </Grid>
-                            </Grid>
-                            </Grid>
-                            <Grid item>
-                            <Grid
-                              spacing={2}
-                              container
-                              justifyContent={"left"}
-                              alignItems={"flex-end"}
-                              direction={"raw"}
-                            >
                               <Grid item>
-                                <Select
-                                  labelId="BuilInVariables"
-                                  id="BuilInVariables"
-                                  value={copyText}
-                                  label="BuilInVariables"
+                                <Grid
+                                  spacing={2}
+                                  container
+                                  justifyContent={"left"}
+                                  alignItems={"flex-end"}
+                                  direction={"raw"}
+                                >
+                                  <Grid item>
+                                    <Select
+                                      labelId="BuilInVariables"
+                                      id="BuilInVariables"
+                                      value={copyText}
+                                      label="BuilInVariables"
 
-                                  onChange={(e) => {
-                                    setCopied(false)
-                                    setCopyText(e.target.value)
-                                  }}
-                                >
-                                  {config.BUILT_IN_VARIABLES.map((v) => {
-                                    return (
-                                      <MenuItem key={v} value={v}>{v}</MenuItem>
-                                    )
-                                  })}
-                                </Select>
-                                <FormHelperText>Snipets and Variables</FormHelperText>
+                                      onChange={(e) => {
+                                        setCopied(false)
+                                        setCopyText(e.target.value)
+                                      }}
+                                    >
+                                      {config.BUILT_IN_VARIABLES.map((v) => {
+                                        return (
+                                          <MenuItem key={v} value={v}>{v}</MenuItem>
+                                        )
+                                      })}
+                                    </Select>
+                                    <FormHelperText>Snipets and Variables</FormHelperText>
+                                  </Grid>
+                                  <Grid item>
+                                    <CopyToClipboard
+                                      onCopy={(e) => setCopied(true)}
+                                      text={copyText}
+                                    >
+                                      <IconButton onClick={() => setCopied(true)}>
+                                        <CopyIcon />
+                                      </IconButton>
+                                    </CopyToClipboard>
+                                  </Grid>
+                                </Grid>
                               </Grid>
-                              <Grid item>
-                                <CopyToClipboard
-                                  onCopy={(e) => setCopied(true)}
-                                  text={copyText}
-                                >
-                                  <IconButton onClick={() => setCopied(true)}>
-                                  <CopyIcon/>
-                                  </IconButton>
-                                </CopyToClipboard>
-                              </Grid>
-                            </Grid>
-                            </Grid>
                             </Grid>
                             {/* </div> */}
                           </DialogContent>
