@@ -56,7 +56,7 @@ def template_accessor():
         t = models.Template.objects.filter(name=template_name)
         t = t[0]
         with t.file.open("w") as fp:
-            json.dump(body, fp)
+            json.dump(body, fp, indent=2)
         cache_def = cfn_def.CfnTemplate(t.file.path)
         return cache_def
     
@@ -351,3 +351,57 @@ def attributes(request:HttpRequest, project_name:str, template_name:str, resourc
             attributes = spec.get_attribute_spec(resource_name)
             return JsonResponse({"Attributes": {resource_name : list(attributes.keys())}})
 
+
+@csrf_exempt
+def description(request:HttpRequest, project_name:str, template_name:str):
+    target_template = load_template(project_name, template_name)
+
+
+    print("hoge")
+    if request.method == "GET":
+        desc = target_template.description
+        return JsonResponse({"Description": desc if desc is not None else ""})
+    
+    if request.method == "POST":
+        desc = json.loads(request.body)["Description"]
+        new_body = deepcopy(target_template.body)
+        new_body["Description"] = desc
+
+        target_template = save_template(project_name, template_name, new_body)
+        return JsonResponse({"Description": desc})
+
+
+@csrf_exempt
+def mapping(request:HttpRequest, project_name:str, template_name:str):
+    target_template = load_template(project_name, template_name)
+
+    if request.method == "GET":
+        df = target_template.to_df(target_template.mappings, "Mappings")
+        df = df.drop(["Filename"], axis=1)
+        mappings = df.to_dict(orient="records")
+
+        return JsonResponse({"Mappings": mappings})
+    
+    if request.method == "POST":
+        mappings = json.loads(request.body)["Mappings"]
+        df = pd.DataFrame(mappings)
+        mappings = {}
+        for gb_name in df.groupby(["Name"]):
+            mappings[gb_name[0]] = {}
+            for gb_item in gb_name[1].groupby(["Item"]):
+                mappings[gb_name[0]][gb_item[0]] = {}
+                for gb_key in gb_item[1].groupby(["Key"]):
+                    mappings[gb_name[0]][gb_item[0]][gb_key[0]] = {}
+                    for gb_value in gb_key[1].groupby(["Value"]):
+                        mappings[gb_name[0]][gb_item[0]][gb_key[0]] = gb_value[0]
+        print(mappings)
+        new_body = deepcopy(target_template.body)
+        new_body["Mappings"] = mappings
+
+        target_template = save_template(project_name, template_name, new_body)
+        df = target_template.to_df(target_template.mappings, "Mappings")
+        df = df.drop(["Filename"], axis=1)
+
+        mappings = df.to_dict(orient="records")
+
+        return JsonResponse({"Mappings": mappings})

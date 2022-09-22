@@ -38,7 +38,9 @@ import * as config from "./config"
 import PropTypes from 'prop-types';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import { Description } from './CfnDescription';
 import { Parameters } from './CfnParameter';
+import {Mappings} from "./CfnMappings"
 import { Resources } from "./CfnResource";
 import { Outputs } from "./CfnOutputs";
 
@@ -158,10 +160,13 @@ function PersistentDrawerLeft() {
 
   const [selectedTab, setSelectedTab] = React.useState(0);
 
+  const [descriptionDef, setDescriptionDef] = React.useState("")
   const [parameterDefs, setParameterDefs] = React.useState([])
+  const [mappingDefs, setMappingDefs] = React.useState([])
   const [resourceDefs, setResourceDefs] = React.useState([])
   const [attributeDefs, setAttributeDefs] = React.useState({})
   const [outputDefs, setOutputDefs] = React.useState([])
+
 
   React.useEffect(() => {
     localStorage.setItem("cfn-editor-selectedProjectName", selectedProjectName)
@@ -175,8 +180,16 @@ function PersistentDrawerLeft() {
 
 
   React.useEffect(() => {
+    // description
+    var url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/description`
+    fetch.apply(url)
+    .then(res => res.json())
+    .then(body => {
+      setDescriptionDef(body["Description"])
+    })
+
     // parameters
-    var url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/parameter`
+    url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/parameter`
     fetch(url)
       .then(res => res.json())
       .then(body => {
@@ -184,6 +197,15 @@ function PersistentDrawerLeft() {
         setParameterDefs(newParameterDef)
       })
 
+      // mappings
+      url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/mapping`
+      fetch(url)
+        .then(res => res.json())
+        .then(body => {
+          const newMappingDefs = [...body["Mappings"]]
+          setMappingDefs(newMappingDefs)
+        })
+  
     // resources
     url = config.BASE_API_URL + `project/${selectedProjectName}/template/${selectedTemplate["Name"]}/resource`
     fetch(url)
@@ -716,12 +738,24 @@ function PersistentDrawerLeft() {
         <Box sx={{ width: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={selectedTab} onChange={handleTabChange} aria-label="basic tabs example">
-              <Tab label="Parameters" {...a11yProps(0)} />
-              <Tab label="Resources" {...a11yProps(1)} />
-              <Tab label="Outputs" {...a11yProps(2)} />
+              <Tab label="Description" {...a11yProps(0)} />
+              <Tab label="Parameters" {...a11yProps(1)} />
+              <Tab label="Mappings" {...a11yProps(2)} />
+              <Tab label="Resources" {...a11yProps(3)} />
+              <Tab label="Outputs" {...a11yProps(4)} />
             </Tabs>
           </Box>
           <TabPanel value={selectedTab} index={0}>
+            <Description
+              projectName={selectedProjectName}
+              templateName={selectedTemplate["Name"]}
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+              descriptionDef={descriptionDef}
+              setDescriptionDef={setDescriptionDef}
+            />
+          </TabPanel>
+          <TabPanel value={selectedTab} index={1}>
             <Parameters
               projectName={selectedProjectName}
               templateName={selectedTemplate["Name"]}
@@ -731,7 +765,15 @@ function PersistentDrawerLeft() {
               setParameterDefs={setParameterDefs}
             />
           </TabPanel>
-          <TabPanel value={selectedTab} index={1}>
+          <TabPanel value={selectedTab} index={2}>
+            <Mappings
+              projectName={selectedProjectName}
+              templateName={selectedTemplate["Name"]}
+              mappingDefs={mappingDefs}
+              setMappingDefs={setMappingDefs}
+            />
+          </TabPanel>
+          <TabPanel value={selectedTab} index={3}>
             <Resources
               projectName={selectedProjectName}
               templateName={selectedTemplate["Name"]}
@@ -744,7 +786,7 @@ function PersistentDrawerLeft() {
               setAttributeDefs={setAttributeDefs}
             />
           </TabPanel>
-          <TabPanel value={selectedTab} index={2}>
+          <TabPanel value={selectedTab} index={4}>
             <Outputs
               projectName={selectedProjectName}
               templateName={selectedTemplate["Name"]}
